@@ -1,4 +1,4 @@
-// DrawTriangle.js (c) 2012 matsuda
+var ctx;
 function main() {  
   // Retrieve <canvas> element
   var canvas = document.getElementById('example');  
@@ -8,7 +8,7 @@ function main() {
   } 
 
   // Get the rendering context for 2DCG
-  var ctx = canvas.getContext('2d');
+  ctx = canvas.getContext('2d');
   const v1 = new Vector3([2.25, 2.25, 0]);
   // Draw a blue rectangle
   ctx.fillStyle = "black";
@@ -21,8 +21,8 @@ function drawVector(v, color){
   const xOrigin = canvasWidth / 2;
   const yOrigin = canvasHeight / 2;
   const scaleFactor = 20;
-  const x1 = xOrigin + v1.elements[0] * scaleFactor;
-  const y1 = yOrigin - v1.elements[1] * scaleFactor;
+  const x1 = xOrigin + v.elements[0] * scaleFactor;
+  const y1 = yOrigin - v.elements[1] * scaleFactor;
   ctx.strokeStyle = color;
   ctx.beginPath();
   ctx.moveTo(xOrigin,yOrigin);
