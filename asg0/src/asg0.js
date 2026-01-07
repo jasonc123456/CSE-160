@@ -16,10 +16,8 @@ function main() {
   drawVector(v1, "red");
 }
 function drawVector(v, color){
-  const canvasWidth = 400;
-  const canvasHeight = 400;
-  const xOrigin = canvasWidth / 2;
-  const yOrigin = canvasHeight / 2;
+  const xOrigin = ctx.canvas.width / 2;
+  const yOrigin = ctx.canvas.height / 2;
   const scaleFactor = 20;
   const x1 = xOrigin + v.elements[0] * scaleFactor;
   const y1 = yOrigin - v.elements[1] * scaleFactor;
