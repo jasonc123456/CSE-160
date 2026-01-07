@@ -27,3 +27,11 @@ function drawVector(v, color){
   ctx.lineTo(x1, y1);
   ctx.stroke();
 }
+function handleDrawEvent(){
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, 400, 400);
+  const x = parseFloat(document.getElementById('xCoord').value);
+  const y = parseFloat(document.getElementById('yCoord').value);
+  const v1 = new Vector3([x, y, 0]);
+  drawVector(v1, "red");
+}
