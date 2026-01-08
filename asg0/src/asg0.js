@@ -83,5 +83,17 @@ function handleDrawOperationEvent(){
     v4.div(scalar);
     drawVector(v3, "green");
     drawVector(v4, "green");
+  }else if(operation == "mag"){
+    console.log("v1 magnitude =", v1.magnitude());
+    console.log("v2 magnitude =", v2.magnitude());
+  }else if(operation == "nor"){
+    console.log("v1 magnitude =", v1.magnitude());
+    console.log("v2 magnitude =", v2.magnitude());
+    const v3 = new Vector3([x1, y1, 0]);
+    const v4 = new Vector3([x2, y2, 0]);
+    v3.normalize();
+    v4.normalize();
+    drawVector(v3, "green");
+    drawVector(v4, "green");
   }
 }
