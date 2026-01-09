@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CSE 160 – Assignments</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        margin: 0;
+        padding: 24px;
+        line-height: 1.4;
+      }
+      .container { max-width: 840px; margin: 0 auto; }
+      header { margin-bottom: 20px; }
+      h1 { font-size: 1.5rem; margin: 0 0 6px; }
+      p { margin: 0; opacity: 0.85; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+      .card {
+        border: 1px solid rgba(127,127,127,0.35);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .card h2 { font-size: 1.1rem; margin: 0 0 8px; }
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      a.button {
+        display: inline-block;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(127,127,127,0.35);
+        text-decoration: none;
+      }
+      a.button:hover { filter: brightness(1.08); }
+      footer { margin-top: 18px; font-size: 0.95rem; opacity: 0.8; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <header>
+        <h1>CSE 160 – Assignment Launcher</h1>
+        <p>
+          Select an assignment page or its test cases.
+        </p>
+      </header>
+
+      <main class="grid" id="asgGrid"></main>
+    </div>
+
+    <script>
+      // EDIT HERE: Add more assignments as you create them.
+      // Just append new objects for asg1, asg2, etc.
+      const assignments = [
+        {
+          name: "Assignment 0",
+          page: "https://cse160.jasoncheung.dev/asg0/src/asg0.html",
+          tests: "https://cse160.jasoncheung.dev/asg0/lib/vectorTests.html",
+        },
+        // Example placeholders
+        // {
+        //   name: "Assignment 1",
+        //   page: "https://cse160.jasoncheung.dev/asg1/src/asg1.html",
+        //   tests: "https://cse160.jasoncheung.dev/asg1/lib/asg1Tests.html",
+        // },
+      ];
+
+      const grid = document.getElementById("asgGrid");
+
+      assignments.forEach((a) => {
+        const card = document.createElement("section");
+        card.className = "card";
+
+        const title = document.createElement("h2");
+        title.textContent = a.name;
+
+        const links = document.createElement("div");
+        links.className = "links";
+
+        const pageLink = document.createElement("a");
+        pageLink.className = "button";
+        pageLink.href = a.page;
+        pageLink.target = "_blank";
+        pageLink.rel = "noopener noreferrer";
+        pageLink.textContent = "Open Assignment";
+
+        const testLink = document.createElement("a");
+        testLink.className = "button";
+        testLink.href = a.tests;
+        testLink.target = "_blank";
+        testLink.rel = "noopener noreferrer";
+        testLink.textContent = "Open Test Cases";
+
+        links.appendChild(pageLink);
+        links.appendChild(testLink);
+
+        card.appendChild(title);
+        card.appendChild(links);
+        grid.appendChild(card);
+      });
+    </script>
+  </body>
+</html>
