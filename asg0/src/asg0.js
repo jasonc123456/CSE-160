@@ -32,7 +32,7 @@ function handleDrawEvent(){
   const y1 = parseFloat(document.getElementById('y1Coord').value);
   const x2 = parseFloat(document.getElementById('x2Coord').value);
   const y2 = parseFloat(document.getElementById('y2Coord').value);
-  console.log("x1,y1,x2,y2 =", x1, y1, x2, y2);
+  //console.log("x1,y1,x2,y2 =", x1, y1, x2, y2);
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   if (!isNaN(x1) && !isNaN(y1)){
@@ -49,7 +49,7 @@ function handleDrawOperationEvent(){
   const y1 = parseFloat(document.getElementById('y1Coord').value);
   const x2 = parseFloat(document.getElementById('x2Coord').value);
   const y2 = parseFloat(document.getElementById('y2Coord').value);
-  console.log("x1,y1,x2,y2 =", x1, y1, x2, y2);
+  //console.log("x1,y1,x2,y2 =", x1, y1, x2, y2);
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) return;
