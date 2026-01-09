@@ -83,6 +83,16 @@ function handleDrawOperationEvent(){
     v4.div(scalar);
     drawVector(v3, "green");
     drawVector(v4, "green");
+  }else if(operation == "dot"){
+    const dot = Vector3.dot(v1, v2);
+    const m1 = v1.magnitude();
+    const m2 = v2.magnitude();
+    if(m1 === 0 || m2 === 0) return;
+    let cosAlpha = dot / (m1 * m2);
+    if(cosAlpha > 1) cosAlpha = 1;
+    if(cosAlpha < -1) cosAlpha = -1;
+    const angleDegree = Math.acos(cosAlpha) * 180 / Math.PI;
+    console.log("Angle Between (Degrees)", angleDegree);
   }else if(operation == "mag"){
     console.log("v1 magnitude =", v1.magnitude());
     console.log("v2 magnitude =", v2.magnitude());
