@@ -39,6 +39,27 @@ function setupWebGl(){
   gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 }
+function connectVariablesToGlsl(){
+  if(!initShaders(gl, vertexShaderSource, fragmentShaderSource)){
+    console.log("Failed to initialize shaders");
+    return;
+  }
+  aPosition = gl.getAttribLocation(gl.program, "a_Position");
+  if (aPosition < 0){
+    console.log("Failed to get attribute location: a_Position");
+    return;
+  }
+  uFragColor = gl.getUniformLocation(gl.program, "u_FragColor");
+  if (!uFragColor){
+    console.log("Failed to get uniform location: u_FragColor");
+    return;
+  }
+  uPointSize = gl.getUniformLocation(gl.program, "u_PointSize");
+  if (!uPointSize){
+    console.log("Failed to get uniform location: u_PointSize");
+    return;
+  }
+}
 function main() {
   // Retrieve <canvas> element
   var canvas = document.getElementById('webgl');
