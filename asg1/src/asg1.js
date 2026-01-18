@@ -83,7 +83,14 @@ function handleCanvasDraw(mouseEvent) {
   shapes.push(shapeToAdd);
   renderAllShapes();
 }
-
+function mouseEventToClipSpace(mouseEvent) {
+  const rect = mouseEvent.target.getBoundingClientRect();
+  const pixelX = mouseEvent.clientX - rect.left;
+  const pixelY = mouseEvent.clientY - rect.top;
+  const clipX = (pixelX - canvas.width / 2) / (canvas.width / 2);
+  const clipY = (canvas.height / 2 - pixelY) / (canvas.height / 2);
+  return [clipX, clipY];
+}
 function main() {
   // Retrieve <canvas> element
   var canvas = document.getElementById('webgl');
