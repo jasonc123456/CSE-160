@@ -66,7 +66,7 @@ function renderAllShapes(){
     shape.render();
   }
 }
-function handleCanvasDraw(mouseEvent) {
+function handleCanvasDraw(mouseEvent){
   const [clipX, clipY] = mouseEventToClipSpace(mouseEvent);
   let shapeToAdd;
   if (selectedBrushType === brushSquare) {
@@ -83,7 +83,7 @@ function handleCanvasDraw(mouseEvent) {
   shapes.push(shapeToAdd);
   renderAllShapes();
 }
-function mouseEventToClipSpace(mouseEvent) {
+function mouseEventToClipSpace(mouseEvent){
   const rect = mouseEvent.target.getBoundingClientRect();
   const pixelX = mouseEvent.clientX - rect.left;
   const pixelY = mouseEvent.clientY - rect.top;
@@ -91,7 +91,7 @@ function mouseEventToClipSpace(mouseEvent) {
   const clipY = (canvas.height / 2 - pixelY) / (canvas.height / 2);
   return [clipX, clipY];
 }
-function addActionsForHtmlUi() {
+function addActionsForHtmlUi(){
   document.getElementById("clearButton").onclick = () => {
     shapes = [];
     renderAllShapes();
@@ -123,9 +123,16 @@ function addActionsForHtmlUi() {
   });
 }
 function main() {
-  // Retrieve <canvas> element
-  var canvas = document.getElementById('webgl');
-
+  setupWebGl();
+  connectVariablesToGlsl();
+  addActionsForHtmlUi();
+  canvas.onmousedown = handleCanvasDraw;
+  canvas.onmousemove = function (ev) {
+    if (ev.buttons === 1) {
+      handleCanvasDraw(ev);
+    }
+  };
+  renderAllShapes();
   // Get the rendering context for WebGL
   var gl = getWebGLContext(canvas);
   if (!gl) {
