@@ -155,7 +155,6 @@ class SquareShape{
   }
 }
 function drawTriangleVertices(vertices){
-  const vertexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
   gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
