@@ -70,7 +70,7 @@ function handleCanvasDraw(mouseEvent){
   const [clipX, clipY] = mouseEventToClipSpace(mouseEvent);
   let shapeToAdd;
   if (selectedBrushType === brushSquare) {
-    shapeToAdd = new PointShape();
+    shapeToAdd = new SquareShape();
   } else if (selectedBrushType === brushTriangle) {
     shapeToAdd = new TriangleShape();
   } else {
@@ -134,7 +134,7 @@ function main(){
   };
   renderAllShapes();
 }
-class squareShape{
+class SquareShape{
   constructor(){
     this.position = [0, 0];
     this.color = [1, 1, 1, 1];
