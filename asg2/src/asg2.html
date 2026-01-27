@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style>
+      body{ font-family: Arial, sans-serif; margin: 20px;}
+      .app{ display: flex; gap: 16px; align-items: flex-start;}
+      .panel{
+        width: 480px;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        background: #fafafa;
+      }
+      .row{margin: 10px 0;}
+      .row label{ display: inline-block; width: 70px;}
+      canvas{
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      }
+      button {margin-right: 6px; margin-top: 4px;}
+      .notes {font-size: 0.9em; color: #333;}
+    </style>
+    <meta charset="utf-8" />
+    <title>Assignment 1</title>
+  </head>
+
+  <body onload="main()">
+    <p>Hei Yat Jason Cheung</p>
+    <p>hcheun17@ucsc.edu</p>
+
+    <p><strong>Notes to Grader:</strong></p>
+    <ul>
+      <li>For the Awesomeness points, I have added a couple extra / bonus features such as the Eraser and Rotation tool(Only work on triangle for now) which make the canvas more usable and can draw more advanced pictures!</li>
+      <li>CSE160 Assignments Selector: <a href="https://cse160.jasoncheung.dev/" target="_blank">Click Here</a></li>
+      <li>Github Repo: <a href="https://github.com/jasonc123456/CSE-160/" target="_blank">Click Here</a></li>
+      <!--<li>Test Cases: <a href="https://cse160.jasoncheung.dev/asg0/lib/vectorTests.html" target="_blank">Click Here</a></li>-->
+      <li>asg1.js: <a href="https://cse160.jasoncheung.dev/asg1/src/asg1.js" target="_blank">Click Here</a></li>
+    </ul>
+    <hr>
+    <div class="app">
+      <canvas id="webgl" width="400" height="400">
+      Please use a browser that supports "canvas"
+      </canvas>
+      <div class="panel">
+        <div class="row">
+          <button id="clearButton">Clear Canvas</button>
+        </div>
+        <div class="row">
+          <label>Drawing Mode:</label>
+          <button id="squareButton">Squares</button>
+          <button id="triButton">Triangles</button>
+          <button id="circleButton">Circles</button>
+        </div>
+        <div class="row">
+          <label>Red</label>
+          <input type="range" id="redSlide" min="0" max="100" value="100"/>
+          <label>Green</label>
+          <input type="range" id="greenSlide" min="0" max="100" value="100"/>
+          <label>Blue</label>
+          <input type="range" id="blueSlide" min="0" max="100" value="100"/>
+        </div>
+        <div class="row">
+          <label>Size</label>
+          <input type="range" id="sizeSlide" min="1" max="40" value="10"/>
+          <label>Segments</label>
+          <input type="range" id="segSlide" min="3" max="60" value="12"/>
+        </div>
+        <div class="row">
+          Bonus Features!
+          <button id="eraserButton">Eraser</button>
+          <label>Eraser</label>
+          <input type="range" id="eraserSlide" min="5" max="60" value="20"/>
+          <span id="eraserVal">20</span>
+          <label>Rotate(Select Triangle for Rotation)</label>
+          <input type="range" id="rotSlide" min="0" max="360" value="0"/>
+          <span id="rotVal">0</span>
+        </div>
+        <div class="row">
+          <button id="drawPictureButton">Render My Sketch</button>
+        </div>
+      </div>
+    </div>
+
+    <img src="swordSketch.jpeg" width="400" alt="My sketch reference" />
+    <script src="../lib/webgl-utils.js"></script>
+    <script src="../lib/webgl-debug.js"></script>
+    <script src="../lib/cuon-utils.js"></script>
+    <script src="asg1.js"></script>
+  </body>
+</html>
