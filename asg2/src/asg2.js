@@ -18,7 +18,8 @@ var fragmentShaderSource = `
   }
 `;
 // global variables
-let canvas, gl, aPosition, uFragColor, uPointSize;
+let canvas, gl, aPosition, uFragColor;
+let uModelMatrix, uGlobalRotateMatrix;
 let triangleVertexBuffer = null;
 let pictureShapes = [];
 //Brush modes
@@ -42,12 +43,17 @@ function setupWebGl(){
     console.log("Failed to get WebGL context");
     return;
   }
-  gl = canvas.getContext("webgl", { preserveDrawingBuffer: true });
   gl.enable(gl.DEPTH_TEST);
   gl.clearColor(0, 0, 0, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 }
 function connectVariablesToGlsl(){
+  uModelMatrix = gl.getUniformLocation(gl.program, "u_ModelMatrix");
+  uGlobalRotateMatrix = gl.getUniformLocation(gl.program, "u_GlobalRotateMatrix");
+  if(!uModelMatrix || !uGlobalRotateMatrix){
+    console.log("Failed to get matrix uniform(s)");
+    return;
+  }
   if(!initShaders(gl, vertexShaderSource, fragmentShaderSource)){
     console.log("Failed to initialize shaders");
     return;
@@ -62,11 +68,7 @@ function connectVariablesToGlsl(){
     console.log("Failed to get uniform location: u_FragColor");
     return;
   }
-  uPointSize = gl.getUniformLocation(gl.program, "u_Size");
-  if(!uPointSize){
-    console.log("Failed to get uniform location: u_Size");
-    return;
-  }
+
   triangleVertexBuffer = gl.createBuffer();
   if (!triangleVertexBuffer) {
     console.log("Failed to create shared triangle buffer");
@@ -203,7 +205,6 @@ class SquareShape{
   }
   render(){
     gl.uniform4f(uFragColor, this.color[0], this.color[1], this.color[2], this.color[3]);
-    gl.uniform1f(uPointSize, this.size);
     gl.disableVertexAttribArray(aPosition);
     gl.vertexAttrib3f(aPosition, this.position[0], this.position[1], 0);
     gl.drawArrays(gl.POINTS, 0, 1);
