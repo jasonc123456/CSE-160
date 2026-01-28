@@ -1,7 +1,7 @@
 
 // HelloPoint1.js (c) 2012 matsuda
 // Vertex shader program
-var VSHADER_SOURCE = `
+var vertexShaderSource = `
   attribute vec4 a_Position;
   uniform mat4 u_ModelMatrix;
   uniform mat4 u_GlobalRotateMatrix;
