@@ -2,11 +2,11 @@
 // HelloPoint1.js (c) 2012 matsuda
 // Vertex shader program
 var vertexShaderSource = `
-  attribute vec4 a_Position;
+  attribute vec3 a_Position;
   uniform mat4 u_ModelMatrix;
   uniform mat4 u_GlobalRotateMatrix;
   void main() {
-    gl_Position = u_GlobalRotateMatrix * u_ModelMatrix * a_Position;
+    gl_Position = u_GlobalRotateMatrix * u_ModelMatrix * vec4(a_Position, 1.0);
   }
 `;
 // Fragment shader program
@@ -18,10 +18,17 @@ var fragmentShaderSource = `
   }
 `;
 // global variables
-let canvas, gl, aPosition, uFragColor;
-let uModelMatrix, uGlobalRotateMatrix;
+let canvas, gl;
+let aPosition, uFragColor, uModelMatrix, uGlobalRotateMatrix;
 let triangleVertexBuffer = null;
 let pictureShapes = [];
+let cubeVertexBuffer = null;
+let gAnimalGlobalRotation = 0;
+let gHipAngle = 0;
+let gKneeAngle = 0;
+let gAnimationOn = false;
+let g_lastMs = 0;
+let g_fpsSmoothed = 0;
 //Brush modes
 const brushSquare = 0;
 const brushTriangle = 1;
@@ -36,6 +43,36 @@ let selectedRotationDeg = 0;
 let eraserSize = 20; // in pixels
 //List holding all shapes that needs to be rendered
 let shapes = [];
+const CUBE_VERTS = new Float32Array([
+  //Front (+Z)
+  -0.5,-0.5, 0.5,   0.5,-0.5, 0.5,   0.5, 0.5, 0.5,
+  -0.5,-0.5, 0.5,   0.5, 0.5, 0.5,  -0.5, 0.5, 0.5,
+  //Back (-Z)
+  -0.5,-0.5,-0.5,  -0.5, 0.5,-0.5,   0.5, 0.5,-0.5,
+  -0.5,-0.5,-0.5,   0.5, 0.5,-0.5,   0.5,-0.5,-0.5,
+  //Left (-X)
+  -0.5,-0.5,-0.5,  -0.5,-0.5, 0.5,  -0.5, 0.5, 0.5,
+  -0.5,-0.5,-0.5,  -0.5, 0.5, 0.5,  -0.5, 0.5,-0.5,
+  //Right (+X)
+   0.5,-0.5,-0.5,   0.5, 0.5,-0.5,   0.5, 0.5, 0.5,
+   0.5,-0.5,-0.5,   0.5, 0.5, 0.5,   0.5,-0.5, 0.5,
+  //Top (+Y)
+  -0.5, 0.5,-0.5,  -0.5, 0.5, 0.5,   0.5, 0.5, 0.5,
+  -0.5, 0.5,-0.5,   0.5, 0.5, 0.5,   0.5, 0.5,-0.5,
+  //Bottom (-Y)
+  -0.5,-0.5,-0.5,   0.5,-0.5,-0.5,   0.5,-0.5, 0.5,
+  -0.5,-0.5,-0.5,   0.5,-0.5, 0.5,  -0.5,-0.5, 0.5,
+]);
+function initCubeBuffer(){
+  cubeVertexBuffer = gl.createBuffer();
+  if(!cubeVertexBuffer){
+    console.log("Failed to create cubeVertexBuffer");
+    return false;
+  }
+  gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, CUBE_VERTS, gl.STATIC_DRAW);
+  return true;
+}
 function setupWebGl(){
   canvas = document.getElementById("webgl");
   gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});
@@ -48,16 +85,12 @@ function setupWebGl(){
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 }
 function connectVariablesToGlsl(){
-  uModelMatrix = gl.getUniformLocation(gl.program, "u_ModelMatrix");
-  uGlobalRotateMatrix = gl.getUniformLocation(gl.program, "u_GlobalRotateMatrix");
-  if(!uModelMatrix || !uGlobalRotateMatrix){
-    console.log("Failed to get matrix uniform(s)");
-    return;
-  }
+  //Compile/link shaders FIRST so gl.program exists
   if(!initShaders(gl, vertexShaderSource, fragmentShaderSource)){
     console.log("Failed to initialize shaders");
     return;
   }
+  //Get attribute/uniform locations
   aPosition = gl.getAttribLocation(gl.program, "a_Position");
   if(aPosition < 0){
     console.log("Failed to get attribute location: a_Position");
@@ -68,15 +101,32 @@ function connectVariablesToGlsl(){
     console.log("Failed to get uniform location: u_FragColor");
     return;
   }
-
+  uModelMatrix = gl.getUniformLocation(gl.program, "u_ModelMatrix");
+  uGlobalRotateMatrix = gl.getUniformLocation(gl.program, "u_GlobalRotateMatrix");
+  if(!uModelMatrix || !uGlobalRotateMatrix){
+    console.log("Failed to get matrix uniform(s)");
+    return;
+  }
+  //Create shared triangle buffer
   triangleVertexBuffer = gl.createBuffer();
   if (!triangleVertexBuffer) {
     console.log("Failed to create shared triangle buffer");
     return;
   }
+  //cube buffer (ADD)
+  if(!initCubeBuffer()){
+    return;
+  }
+  //Initialize matrices to identity
+  const I = new Matrix4();
+  gl.uniformMatrix4fv(uModelMatrix, false, I.elements);
+  gl.uniformMatrix4fv(uGlobalRotateMatrix, false, I.elements);
 }
 function renderAllShapes(){
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  const I = new Matrix4();
+  gl.uniformMatrix4fv(uModelMatrix, false, I.elements);
+  gl.uniformMatrix4fv(uGlobalRotateMatrix, false, I.elements);
   for(const shape of pictureShapes){
     shape.render();
   }
@@ -84,7 +134,15 @@ function renderAllShapes(){
     shape.render();
   }
 }
-
+//drawCube + scene render (ADD)
+function drawCube(M, color){
+  gl.uniformMatrix4fv(uModelMatrix, false, M.elements);
+  gl.uniform4f(uFragColor, color[0], color[1], color[2], color[3]);
+  gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexBuffer);
+  gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aPosition);
+  gl.drawArrays(gl.TRIANGLES, 0, 36);
+}
 function handleCanvasDraw(mouseEvent){
   const [clipX, clipY] = mouseEventToClipSpace(mouseEvent);
   if (selectedBrushType === brushEraser){
