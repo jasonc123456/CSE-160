@@ -44,6 +44,9 @@ let gPokeStartMs = -1;
 //fps
 let g_lastMs = 0;
 let g_fpsSmoothed = 0;
+//non-cube primitive (cylinder)
+let cylVertexBuffer = null;
+let cylVertCount = 0;
 //Brush modes
 const brushSquare = 0;
 const brushTriangle = 1;
@@ -86,6 +89,40 @@ function initCubeBuffer(){
   }
   gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, CUBE_VERTS, gl.STATIC_DRAW);
+  return true;
+}
+function buildCylinderVerts(segments){
+  const verts = [];
+  const r = 0.5;
+  const yTop = 0.5;
+  const yBot = -0.5;
+  for(let i = 0; i < segments; i++){
+    const t0 = (i / segments) * 2 * Math.PI;
+    const t1 = ((i + 1) / segments) * 2 * Math.PI;
+    const x0 = r * Math.cos(t0), z0 = r * Math.sin(t0);
+    const x1 = r * Math.cos(t1), z1 = r * Math.sin(t1);
+    //side
+    verts.push(
+      x0, yBot, z0, x1, yBot, z1, x1, yTop, z1,
+      x0, yBot, z0, x1, yTop, z1, x0, yTop, z0
+    );
+    //top cap
+    verts.push(0, yTop, 0,  x1, yTop, z1,  x0, yTop, z0);
+    //bottom cap
+    verts.push(0, yBot, 0,  x0, yBot, z0,  x1, yBot, z1);
+  }
+  return new Float32Array(verts);
+}
+function initCylinderBuffer(){
+  const data = buildCylinderVerts(24);
+  cylVertCount = data.length / 3;
+  cylVertexBuffer = gl.createBuffer();
+  if(!cylVertexBuffer){
+    console.log("Failed to create cylVertexBuffer");
+    return false;
+  }
+  gl.bindBuffer(gl.ARRAY_BUFFER, cylVertexBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
   return true;
 }
 function setupWebGl(){
@@ -132,6 +169,10 @@ function connectVariablesToGlsl(){
   if(!initCubeBuffer()){
     return;
   }
+  //cylinder buffer for non-cube primitive
+  if(!initCylinderBuffer()){
+    return;
+  }
   //Initialize matrices to identity
   const I = new Matrix4();
   gl.uniformMatrix4fv(uModelMatrix, false, I.elements);
@@ -158,12 +199,51 @@ function drawCube(M, color){
   gl.enableVertexAttribArray(aPosition);
   gl.drawArrays(gl.TRIANGLES, 0, 36);
 }
-function drawSheepLeg(x, z, hipDeg, kneeDeg){
-  //joint at body bottom
-  const base = new Matrix4();
-  base.translate(x, -0.10, z);
-  base.rotate(hipDeg, 1, 0, 0);
-
+function drawCylinder(M, color){
+  gl.uniformMatrix4fv(uModelMatrix, false, M.elements);
+  gl.uniform4f(uFragColor, color[0], color[1], color[2], color[3]);
+  gl.bindBuffer(gl.ARRAY_BUFFER, cylVertexBuffer);
+  gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aPosition);
+  gl.drawArrays(gl.TRIANGLES, 0, cylVertCount);
+}
+function drawLeg(root, x, z, hipDeg, kneeDeg, ankleDeg, legColor, hoofColor){
+  const attachY = -0.05;
+  // hip frame (level 1)
+  const M = new Matrix4();
+  M.set(root);
+  M.translate(x, attachY, z);
+  M.rotate(hipDeg, 1, 0, 0);
+  // thigh
+  {
+    const T = new Matrix4();
+    T.set(M);
+    T.translate(0, -0.12, 0);
+    T.scale(0.14, 0.24, 0.14);
+    drawCube(T, legColor);
+  }
+  // knee pivot (level 2)
+  M.translate(0, -0.24, 0);
+  M.rotate(kneeDeg, 1, 0, 0);
+  // calf
+  {
+    const C = new Matrix4();
+    C.set(M);
+    C.translate(0, -0.11, 0);
+    C.scale(0.13, 0.22, 0.13);
+    drawCube(C, legColor);
+  }
+  // ankle pivot (level 3)
+  M.translate(0, -0.22, 0);
+  M.rotate(ankleDeg, 1, 0, 0);
+  // hoof
+  {
+    const H = new Matrix4();
+    H.set(M);
+    H.translate(0, -0.05, 0.02);
+    H.scale(0.16, 0.10, 0.20);
+    drawCube(H, hoofColor);
+  }
 }
 function handleCanvasDraw(mouseEvent){
   const [clipX, clipY] = mouseEventToClipSpace(mouseEvent);
@@ -198,52 +278,39 @@ function mouseEventToClipSpace(mouseEvent){
   return [clipX, clipY];
 }
 function addActionsForHtmlUi(){
-  document.getElementById("clearButton").onclick = function(){
-    shapes = [];
-    pictureShapes = [];
-    renderAllShapes();
-  };
-  document.getElementById("squareButton").onclick = function(){
-    selectedBrushType = brushSquare;
-  };
-  document.getElementById("triButton").onclick = function(){
-    selectedBrushType = brushTriangle;
-  };
-  document.getElementById("circleButton").onclick = function(){
-    selectedBrushType = brushCircle;
-  };
-  document.getElementById("drawPictureButton").onclick = function(){
-    drawMinecraftDiamondSword();
-    renderAllShapes();
-  };
-  document.getElementById("eraserButton").onclick = function () {
-    selectedBrushType = brushEraser;
-  };
-  const updateSelectedColorFromSliders = () => {
-    const r = document.getElementById("redSlide").value / 100;
-    const g = document.getElementById("greenSlide").value / 100;
-    const b = document.getElementById("blueSlide").value / 100;
-    selectedColorRgba = [r, g, b, 1];
-  };
-  document.getElementById("redSlide").addEventListener("input", updateSelectedColorFromSliders);
-  document.getElementById("greenSlide").addEventListener("input", updateSelectedColorFromSliders);
-  document.getElementById("blueSlide").addEventListener("input", updateSelectedColorFromSliders);
-  updateSelectedColorFromSliders();
-  document.getElementById("sizeSlide").addEventListener("input", (ev) => {
-    selectedSize = Number(ev.target.value);
+  const globalSlide = document.getElementById("globalRotSlide");
+  const globalVal = document.getElementById("globalRotVal");
+  globalSlide.addEventListener("input", (ev)=>{
+    gAnimalGlobalRotation = Number(ev.target.value);
+    globalVal.innerText = String(gAnimalGlobalRotation);
+    renderScene();
   });
-  document.getElementById("segSlide").addEventListener("input", (ev) => {
-    selectedCircleSegments = Number(ev.target.value);
+  const hipSlide = document.getElementById("hipSlide");
+  const hipVal = document.getElementById("hipVal");
+  hipSlide.addEventListener("input", (ev)=>{
+    gHipAngleUI = Number(ev.target.value);
+    hipVal.innerText = String(gHipAngleUI);
+    if(!gAnimationOn) renderScene();
   });
-  document.getElementById("rotSlide").addEventListener("input", function(ev){
-    selectedRotationDeg = Number(ev.target.value);
-    document.getElementById("rotVal").innerText = String(selectedRotationDeg);
+  const kneeSlide = document.getElementById("kneeSlide");
+  const kneeVal = document.getElementById("kneeVal");
+  kneeSlide.addEventListener("input", (ev)=>{
+    gKneeAngleUI = Number(ev.target.value);
+    kneeVal.innerText = String(gKneeAngleUI);
+    if(!gAnimationOn) renderScene();
   });
-  document.getElementById("eraserSlide").addEventListener("input", function(ev){
-    eraserSize = Number(ev.target.value);
-    document.getElementById("eraserVal").innerText = String(eraserSize);
-  });
-  
+  const ankleSlide = document.getElementById("ankleSlide");
+  const ankleVal = document.getElementById("ankleVal");
+  if(ankleSlide){
+    ankleSlide.addEventListener("input",(ev)=>{
+      gAnkleAngleUI = Number(ev.target.value);
+      if(ankleVal) ankleVal.innerText = String(gAnkleAngleUI);
+      if(!gAnimationOn) renderScene();
+    });
+  }
+  document.getElementById("animButton").onclick = ()=>{
+    gAnimationOn = !gAnimationOn;
+  };
 }
 function eraseAt(x, y, radiusClip){
   const r2 = radiusClip * radiusClip;
