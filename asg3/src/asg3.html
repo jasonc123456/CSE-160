@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>CSE160 - Assignment 3</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      .app { display: flex; gap: 16px; align-items: flex-start; }
+      canvas { border: 1px solid #ddd; border-radius: 10px; }
+      .panel {
+        width: 360px;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        background: #fafafa;
+      }
+      code { background: #eee; padding: 1px 4px; border-radius: 4px; }
+      #fpsBox{
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        background: rgba(20,20,20,0.85);
+        color: #eaffea;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-family: monospace;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+        backdrop-filter: blur(6px);
+        z-index: 9999;
+      }
+      .fpsTitle{ font-size: 11px; opacity: 0.7; margin-bottom: 4px; }
+      .fpsValue{ font-size: 18px; font-weight: bold; }
+      .msValue{ font-size: 12px; opacity: 0.85; }
+    </style>
+  </head>
+  <body onload="main()">
+    <p>Hei Yat Jason Cheung</p>
+    <p>hcheun17@ucsc.edu</p>
+    <div class="app">
+      <canvas id="webgl" width="600" height="600">
+        Please use a browser that supports "canvas"
+      </canvas>
+      <div class="panel">
+        <h3>Controls</h3>
+        <ul>
+          <li><code>W</code><code>A</code><code>S</code><code>D</code> move</li>
+          <li><code>Q</code>/<code>E</code> rotate (yaw)</li>
+          <li>Mouse drag on canvas: rotate camera</li>
+          <li><code>R</code>: add block in front</li>
+          <li><code>F</code>: delete block in front</li>
+        </ul>
+      </div>
+    </div>
+    <div id="fpsBox">
+      <div class="fpsTitle">Performance</div>
+      <div class="fpsValue">FPS: <span id="fps">--</span></div>
+      <div class="msValue">Frame: <span id="ms">--</span> ms</div>
+    </div>
+    <script src="../lib/webgl-utils.js"></script>
+    <script src="../lib/webgl-debug.js"></script>
+    <script src="../lib/cuon-utils.js"></script>
+    <script src="../lib/cuon-matrix.js"></script>
+    <script src="camera.js"></script>
+    <script src="asg3.js"></script>
+  </body>
+</html>
