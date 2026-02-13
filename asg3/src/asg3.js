@@ -1,3 +1,5 @@
+window.ASG3 = window.ASG3 || {};
+const ASG3 = window.ASG3;
 var vertexShaderSource = `
   attribute vec3 a_Position;
   attribute vec2 a_UV;
