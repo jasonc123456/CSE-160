@@ -1,6 +1,6 @@
 // sheep.js
 function drawSheepAt(x, y, z, yawDeg, tSec){
-  const A = window.ASG3;
+  const A = window.gameApi;
   if(!A || !A.drawCubeColored) return;
 
   const root = new Matrix4();
@@ -8,7 +8,7 @@ function drawSheepAt(x, y, z, yawDeg, tSec){
   root.translate(x, y, z);
   root.rotate(yawDeg, 0, 1, 0);
   root.scale(0.9, 0.9, 0.9);
-  // walk cycle
+  //walk cycle
   const w = tSec * 6.0;
   const legA = 20 * Math.sin(w);
   const legB = 20 * Math.sin(w + Math.PI);
@@ -17,7 +17,7 @@ function drawSheepAt(x, y, z, yawDeg, tSec){
   const face = [0.70, 0.62, 0.52, 1.0];
   const leg = [0.35, 0.35, 0.35, 1.0];
   const eye = [0.05, 0.05, 0.05, 1.0];
-  // Body
+  //body
   {
     const M = new Matrix4();
     M.set(root);
@@ -25,7 +25,7 @@ function drawSheepAt(x, y, z, yawDeg, tSec){
     M.scale(1.4, 0.9, 0.9);
     A.drawCubeColored(M, wool);
   }
-  // Belly shade
+  //belly shade
   {
     const M = new Matrix4();
     M.set(root);
@@ -33,7 +33,7 @@ function drawSheepAt(x, y, z, yawDeg, tSec){
     M.scale(1.25, 0.65, 0.75);
     A.drawCubeColored(M, wool2);
   }
-  // Head
+  //head
   {
     const M = new Matrix4();
     M.set(root);
@@ -41,7 +41,7 @@ function drawSheepAt(x, y, z, yawDeg, tSec){
     M.scale(0.6, 0.5, 0.5);
     A.drawCubeColored(M, wool);
   }
-  // Face plate
+  //face plate
   {
     const M = new Matrix4();
     M.set(root);
@@ -49,7 +49,7 @@ function drawSheepAt(x, y, z, yawDeg, tSec){
     M.scale(0.22, 0.38, 0.38);
     A.drawCubeColored(M, face);
   }
-  // Eyes
+  //eyes
   {
     const E1 = new Matrix4();
     E1.set(root);
@@ -62,7 +62,7 @@ function drawSheepAt(x, y, z, yawDeg, tSec){
     E2.scale(0.08, 0.08, 0.08);
     A.drawCubeColored(E2, eye);
   }
-  // Legs
+  //legs
   function legBlock(lx, lz, ang){
     const M = new Matrix4();
     M.set(root);
