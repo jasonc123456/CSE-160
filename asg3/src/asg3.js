@@ -48,6 +48,11 @@ let uFragColorLoc, uTexColorWeightLoc, uWhichTextureLoc;
 let uSampler0Loc, uSampler1Loc, uSampler2Loc, uSampler3Loc, uSampler4Loc, uSampler5Loc, uSampler6Loc;
 let cubeBuffer = null;
 let camera = null;
+const PLAYER_EYE_HEIGHT = 1.7;
+const GRAVITY = 18.0;
+const JUMP_V = 6.0;
+let playerVelY = 0;
+let playerOnGround = true;
 //input
 let keyState = Object.create(null);
 let pointerLocked = false;
@@ -67,8 +72,8 @@ const texWood = 2; // wall1.png
 const texDirt = 3; // dirt.png
 const texLeaves = 4; // leaves.png
 const texSand = 5; // sand.png
-const texWater = 6; // water.png
-const blockNames = ["stone", "grass", "wood", "dirt", "leaves", "sand", "water"];
+const texLapis = 6; // lapis.png
+const blockNames = ["stone", "grass", "wood", "dirt", "leaves", "sand", "lapis"];
 let selectedBlock = texStone;
 //world
 const worldWidth = 32;
@@ -196,9 +201,10 @@ function initTextures(){
   loadTextureToUnit(3, uSampler3Loc, "../assets/dirt.png");
   loadTextureToUnit(4, uSampler4Loc, "../assets/leaves.png");
   loadTextureToUnit(5, uSampler5Loc, "../assets/sand.png");
-  loadTextureToUnit(6, uSampler6Loc, "../assets/water.png");
+  loadTextureToUnit(6, uSampler6Loc, "../assets/lapis.png");
 }
 //world
+//note to grader: world layout is hardcoded via mapHeights and mapTextures 2D arrays and it is created at startup
 function buildWorld(){
   mapHeights = Array.from({length: worldWidth}, () => Array(worldDepth).fill(0));
   mapTextures = Array.from({length: worldWidth}, () => Array(worldDepth).fill(texStone));
@@ -212,9 +218,9 @@ function buildWorld(){
     }
   }
   //small structures
-  for(let x = 6; x <= 13; x++){ mapHeights[x][10] = 2; mapTextures[x][10] = texWood;}
-  for(let z = 14; z <= 23; z++){ mapHeights[18][z] = 1; mapTextures[18][z] = texStone;}
-  for(let x = 20; x <= 26; x++){ mapHeights[x][20] = 3; mapTextures[x][20] = texWood;}
+  for(let x = 6; x <= 13; x++){mapHeights[x][10] = 2; mapTextures[x][10] = texWood;}
+  for(let z = 14; z <= 23; z++){mapHeights[18][z] = 1; mapTextures[18][z] = texStone;}
+  for(let x = 20; x <= 26; x++){mapHeights[x][20] = 3; mapTextures[x][20] = texWood;}
   //sand patch
   for(let x = 3; x <= 9; x++){
     for(let z = 3; z <= 8; z++){
@@ -224,12 +230,12 @@ function buildWorld(){
       }
     }
   }
-  //water pond
+  //lapis blocks
   for(let x = 22; x <= 27; x++){
     for(let z = 5; z <= 10; z++){
       if(mapHeights[x][z] === 0){
         mapHeights[x][z] = 1;
-        mapTextures[x][z] = texWater;
+        mapTextures[x][z] = texLapis;
       }
     }
   }
@@ -246,18 +252,29 @@ function worldToMap(wx, wz){
   const iz = Math.floor(wz - worldOffsetZ);
   return [ix, iz];
 }
-function isBlockedAtWorld(wx, wz){
+function isBlockedAtWorld(wx, wz, eyeY){
   const [ix, iz] = worldToMap(wx, wz);
   if(ix < 0 || ix >= worldWidth || iz < 0 || iz >= worldDepth) return true;
-  return mapHeights[ix][iz] > 0;
+  const h = mapHeights[ix][iz];
+  if(h <= 0) return false;
+  const feetY = eyeY - PLAYER_EYE_HEIGHT;
+  //allow standing on 1-high blocks
+  return (feetY + 0.05) < h;
+}
+function isBlockedAtXZ(wx, wz){
+  const [ix, iz] = worldToMap(wx, wz);
+  if(ix < 0 || ix >= worldWidth || iz < 0 || iz >= worldDepth) return true;
+  return mapHeights[ix][iz] > 0; // sheep are ground-level, so any stack blocks them
 }
 function getFrontCell(){
-  const forward = camera.getForwardXz();
-  const p = new Vector3(camera.eye.elements);
-  forward.mul(1.5);
-  p.add(forward);
-  return worldToMap(p.elements[0], p.elements[2]);
+  const f = camera.getForwardXz();
+  const ex = camera.eye.elements[0];
+  const ez = camera.eye.elements[2];
+  const tx = ex + f.elements[0] * 1.5;
+  const tz = ez + f.elements[2] * 1.5;
+  return worldToMap(tx, tz);
 }
+
 function placeBlock(){
   const [ix, iz] = getFrontCell();
   if(ix < 0 || ix >= worldWidth || iz < 0 || iz >= worldDepth) return;
@@ -272,7 +289,8 @@ function breakBlock(){
 function tryMove(dx, dz){
   const nx = camera.eye.elements[0] + dx;
   const nz = camera.eye.elements[2] + dz;
-  if(isBlockedAtWorld(nx, nz)) return;
+  const ey = camera.eye.elements[1];
+  if(isBlockedAtWorld(nx, nz, ey)) return;
   camera.translateXz(dx, dz);
 }
 //drawing
@@ -282,6 +300,7 @@ function setMaterial(baseRgba, texWeight, whichTexture){
   gl.uniform1i(uWhichTextureLoc, whichTexture);
 }
 function drawCube(modelMatrix){
+  gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuffer);
   gl.uniformMatrix4fv(uModelMatrixLoc, false, modelMatrix.elements);
   gl.drawArrays(gl.TRIANGLES, 0, 36);
 }
@@ -333,4 +352,316 @@ function drawWorld(){
       }
     }
   }
+}
+//sheep and game logic
+function groundHeightAtWorld(wx, wz){
+  const [ix, iz] = worldToMap(wx, wz);
+  if(ix < 0 || ix >= worldWidth || iz < 0 || iz >= worldDepth) return 0;
+  return mapHeights[ix][iz];
+}
+function randRange(min, max){
+  return min + Math.random() * (max - min);
+}
+function spawnSheep() {
+  for(let tries = 0; tries < 2000; tries++){
+    const ix = 1 + Math.floor(Math.random() * (worldWidth - 2));
+    const iz = 1 + Math.floor(Math.random() * (worldDepth - 2));
+    if(mapHeights[ix][iz] > 0) continue;
+    const wx = ix + worldOffsetX + 0.5;
+    const wz = iz + worldOffsetZ + 0.5;
+    const dx = wx - camera.eye.elements[0];
+    const dz = wz - camera.eye.elements[2];
+    if(dx * dx + dz * dz < 16) continue;
+    return {
+      x: wx,
+      y: 0,
+      z: wz,
+      yawDeg: randRange(0, 360),
+      speed: randRange(1.3, 2.2),
+      alive: true,
+      wanderTimer: randRange(0, 1.2),
+    };
+  }
+  return {x: 0, y: 0, z: 0, yawDeg: 0, speed: 1.7, alive: true, wanderTimer: 0};
+}
+function resetGame(){
+  hitCount = 0;
+  gameWon = false;
+  camera.eye = new Vector3([0, PLAYER_EYE_HEIGHT, 6]);
+  playerVelY = 0;
+  playerOnGround = true;
+  camera.yawDeg = 0;
+  camera.pitchDeg = 0;
+  camera.updateView();
+  sheepList = [];
+  for(let i = 0; i < sheepCount; i++) sheepList.push(spawnSheep());
+  updateHud();
+  setCenterMsg("Sheep Hunt!\nClick canvas to enable mouse look.\nUse Left Mouse Button to hit sheep. Chase and hit them all to win.", 6000);
+}
+function rotate2D(x, z, deg){
+  const r = deg * Math.PI / 180;
+  const c = Math.cos(r), s = Math.sin(r);
+  return [x * c - z * s, x * s + z * c];
+}
+function inBoundsWorld(nx, nz){
+  const [ix, iz] = worldToMap(nx, nz);
+  return !(ix <= 1 || ix >= worldWidth - 2 || iz <= 1 || iz >= worldDepth - 2);
+}
+function rotate2d(x, z, deg){
+  const r = (deg * Math.PI) / 180.0;
+  const c = Math.cos(r);
+  const s = Math.sin(r);
+  return [x * c - z * s, x * s + z * c];
+}
+
+function inBoundsWorld(wx, wz){
+  const [ix, iz] = worldToMap(wx, wz);
+  return !(ix <= 1 || ix >= worldWidth - 2 || iz <= 1 || iz >= worldDepth - 2);
+}
+
+function updateSheep(dtSec){
+  const px = camera.eye.elements[0];
+  const pz = camera.eye.elements[2];
+  const steerCandidatesDeg = [0, 25, -25, 60, -60, 90, -90, 135, -135, 180];
+  for(const s of sheepList){
+    if(!s.alive) continue;
+    const dxp = s.x - px;
+    const dzp = s.z - pz;
+    const dist2 = dxp * dxp + dzp * dzp;
+    let dirX = 0;
+    let dirZ = 0;
+    //flee when player is close
+    if(dist2 < 25){
+      const inv = 1.0 / Math.max(0.0001, Math.sqrt(dist2));
+      dirX = dxp * inv;
+      dirZ = dzp * inv;
+      s.speed = Math.min(3.2, s.speed + 0.6 * dtSec);
+    }else{
+      //wander
+      s.wanderTimer += dtSec;
+      if(s.wanderTimer > 1.2){
+        s.wanderTimer = 0;
+        s.yawDeg += randRange(-50, 50);
+      }
+    }
+    //if not fleeing move based on yaw
+    if(dirX === 0 && dirZ === 0){
+      const yaw = (s.yawDeg * Math.PI) / 180.0;
+      dirX = Math.sin(yaw);
+      dirZ = -Math.cos(yaw);
+    }
+    //normalize
+    const len = Math.hypot(dirX, dirZ) || 1;
+    dirX /= len;
+    dirZ /= len;
+    const step = s.speed * dtSec;
+    //steering search, if forward is blocked, try turning left/right before randomizing
+    let moved = false;
+    for(const angDeg of steerCandidatesDeg){
+      const [cx, cz] = rotate2d(dirX, dirZ, angDeg);
+      const nx = s.x + cx * step;
+      const nz = s.z + cz * step;
+      if(isBlockedAtXZ(nx, nz)) continue;
+      if(!inBoundsWorld(nx, nz)) continue;
+      s.x = nx;
+      s.z = nz;
+      //keep yaw consistent with movement convention
+      s.yawDeg = Math.atan2(cx, -cz) * 180.0 / Math.PI;
+      moved = true;
+      break;
+    }
+    //if trapped do a turnaround
+    if(!moved){
+      s.yawDeg += 180;
+    }
+  }
+}
+function attackSheep(){
+  if(gameWon) return;
+  const ex = camera.eye.elements[0];
+  const ez = camera.eye.elements[2];
+  const forward = camera.getForwardXz();
+  const range = 3.0;
+  const dotMin = 0.965;
+  let best = null;
+  let bestD2 = 1e9;
+  for(const s of sheepList){
+    if(!s.alive) continue;
+    const dx = s.x - ex;
+    const dz = s.z - ez;
+    const d2 = dx * dx + dz * dz;
+    if(d2 > range * range) continue;
+    const inv = 1.0 / Math.max(0.0001, Math.sqrt(d2));
+    const vx = dx * inv;
+    const vz = dz * inv;
+    const dot = forward.elements[0] * vx + forward.elements[2] * vz;
+    if(dot < dotMin) continue;
+    if(d2 < bestD2){
+      bestD2 = d2;
+      best = s;
+    }
+  }
+  if(best){
+    best.alive = false;
+    hitCount++;
+    setCenterMsg("HIT! 🐑", 1000);
+    if(sheepList.filter(s => s.alive).length === 0){
+      gameWon = true;
+      setCenterMsg("YOU WON! 🏆\nAll sheep(s) are now caught.\nPress P to play again.", 999999);
+    }
+    updateHud();
+  }else{
+    setCenterMsg("Missed…", 250);
+  }
+}
+//input
+function setupPointerLock(){
+  document.addEventListener("pointerlockchange", () => {
+    pointerLocked = (document.pointerLockElement === canvas);
+    if(pointerLocked) setCenterMsg("Mouse look enabled (Press ESC to exit).", 2000);
+  });
+  canvas.addEventListener("click", () => {
+    if(!pointerLocked) canvas.requestPointerLock();
+  });
+
+  document.addEventListener("mousemove", (ev) => {
+    if(!pointerLocked) return;
+    camera.rotateYaw(ev.movementX * 0.20);
+    camera.rotatePitch(-ev.movementY * 0.15);
+  });
+}
+
+function setupInput(){
+  document.addEventListener("keydown", (ev) => {
+    const k = ev.key.toLowerCase();
+    keyState[k] = true;
+    if(ev.code === "Space"){
+      if(playerOnGround){
+        playerVelY = JUMP_V;
+        playerOnGround = false;
+      }
+    }
+    if (k === "1") selectedBlock = texStone;
+    if (k === "2") selectedBlock = texGrass;
+    if (k === "3") selectedBlock = texWood;
+    if (k === "4") selectedBlock = texDirt;
+    if (k === "5") selectedBlock = texLeaves;
+    if (k === "6") selectedBlock = texSand;
+    if (k === "7") selectedBlock = texLapis;
+    if (k === "r") placeBlock();
+    if (k === "f") breakBlock();
+    if (k === "p") resetGame();
+    updateHud();
+  });
+  document.addEventListener("keyup", (ev) => {
+    keyState[ev.key.toLowerCase()] = false;
+  });
+  canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
+  canvas.addEventListener("mousedown", (ev) => {
+    if(!pointerLocked && ev.button === 0){
+      canvas.requestPointerLock();
+      return;
+    }
+    if(ev.button === 0){
+      attackSheep();
+    }else if(ev.button === 2){
+      breakBlock();
+    }else{
+      dragging = true;
+      lastMouseX = ev.clientX;
+      lastMouseY = ev.clientY;
+    }
+  });
+  window.addEventListener("mouseup", () => { dragging = false; });
+  window.addEventListener("mousemove", (ev) => {
+    if(pointerLocked) return;
+    if(!dragging) return;
+    const dx = ev.clientX - lastMouseX;
+    const dy = ev.clientY - lastMouseY;
+    lastMouseX = ev.clientX;
+    lastMouseY = ev.clientY;
+    camera.rotateYaw(dx * 0.20);
+    camera.rotatePitch(-dy * 0.15);
+  });
+  updateHud();
+}
+
+//FPS
+function updateFps(dtMs){
+  fpsCount++;
+  const now = performance.now();
+  const elapsed = now - fpsLastStamp;
+  if(elapsed >= 500){
+    const fps = (fpsCount * 1000) / elapsed;
+    const fpsEl = document.getElementById("fps");
+    const msEl = document.getElementById("ms");
+    if(fpsEl) fpsEl.innerText = fps.toFixed(1);
+    if(msEl) msEl.innerText = dtMs.toFixed(2);
+    fpsCount = 0;
+    fpsLastStamp = now;
+  }
+}
+function renderScene(tSec){
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.uniformMatrix4fv(uViewMatrixLoc, false, camera.viewMatrix.elements);
+  gl.uniformMatrix4fv(uProjectionMatrixLoc, false, camera.projectionMatrix.elements);
+  drawSkybox();
+  drawGround();
+  drawWorld();
+  if(typeof drawSheepAt === "function"){
+    for(const s of sheepList){
+      if(!s.alive) continue;
+      drawSheepAt(s.x, 0.0, s.z, s.yawDeg, tSec);
+    }
+  }
+  hideCenterMsgIfNeeded();
+}
+function tick(nowMs){
+  if(!lastFrameMs) lastFrameMs = nowMs;
+  const dtMs = nowMs - lastFrameMs;
+  lastFrameMs = nowMs;
+  updateFps(dtMs);
+  const dt = dtMs / 1000.0;
+  const moveSpeed = 4.0 * dt;
+  const yawSpeed = 120.0 * dt;
+  const forward = camera.getForwardXz();
+  const right = camera.getRightXz();
+  if(keyState["w"]) tryMove(forward.elements[0] * moveSpeed, forward.elements[2] * moveSpeed);
+  if(keyState["s"]) tryMove(-forward.elements[0] * moveSpeed, -forward.elements[2] * moveSpeed);
+  if(keyState["a"]) tryMove(-right.elements[0] * moveSpeed, -right.elements[2] * moveSpeed);
+  if(keyState["d"]) tryMove(right.elements[0] * moveSpeed, right.elements[2] * moveSpeed);
+  if(keyState["q"]) camera.rotateYaw(-yawSpeed);
+  if(keyState["e"]) camera.rotateYaw(yawSpeed);
+  if(!gameWon) updateSheep(dt);
+  renderScene(nowMs / 1000.0);
+  requestAnimationFrame(tick);
+  //vertical physics
+  const oldY = camera.eye.elements[1];
+  playerVelY -= GRAVITY * dt;
+  camera.eye.elements[1] += playerVelY * dt;
+  const gH = groundHeightAtWorld(camera.eye.elements[0], camera.eye.elements[2]);
+  const minEyeY = gH + PLAYER_EYE_HEIGHT;
+  if(camera.eye.elements[1] <= minEyeY){
+    camera.eye.elements[1] = minEyeY;
+    playerVelY = 0;
+    playerOnGround = true;
+  }
+  //if Y changed, update view
+  if(camera.eye.elements[1] !== oldY){
+    camera.updateView();
+  }
+}
+function main(){
+  if (!setupWebGl()) return;
+  if (!connectVariablesToGlsl()) return;
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.BACK);
+  camera = new Camera(canvas);
+  buildWorld();
+  setupInput();
+  setupPointerLock();
+  initTextures();
+  resetGame();
+  requestAnimationFrame(tick);
 }

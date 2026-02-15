@@ -39,13 +39,18 @@ class Camera {
   }
   _updateAtAndView() {
     const f = this._forward();
-    const newAt = new Vector3(this.eye.elements);
-    newAt.add(f);
-    this.at = newAt;
+    const ex = this.eye.elements[0];
+    const ey = this.eye.elements[1];
+    const ez = this.eye.elements[2];
+    this.at = new Vector3([
+      ex + f.elements[0],
+      ey + f.elements[1],
+      ez + f.elements[2],
+    ]);
     this.viewMatrix.setLookAt(
-      this.eye.elements[0], this.eye.elements[1], this.eye.elements[2],
-      this.at.elements[0],  this.at.elements[1],  this.at.elements[2],
-      this.up.elements[0],  this.up.elements[1],  this.up.elements[2]
+      ex, ey, ez,
+      this.at.elements[0], this.at.elements[1], this.at.elements[2],
+      this.up.elements[0], this.up.elements[1], this.up.elements[2]
     );
   }
   rotateYaw(deltaDeg) {
@@ -61,4 +66,8 @@ class Camera {
     this.eye.elements[2] += dz;
     this._updateAtAndView();
   }
+  getForwardXz() {return this.forwardXZ();}
+  getRightXz() {return this.rightXZ();}
+  translateXz(dx, dz) {return this.translateXZ(dx, dz);}
+  updateView() {return this._updateAtAndView();}
 }

@@ -2,11 +2,11 @@
 function drawSheepAt(x, y, z, yawDeg, tSec){
   const A = window.gameApi;
   if(!A || !A.drawCubeColored) return;
-
   const root = new Matrix4();
   root.setIdentity();
   root.translate(x, y, z);
-  root.rotate(yawDeg, 0, 1, 0);
+  //referenced chatGPT suggestions to ensure sheep walks forward
+  root.rotate(90 - yawDeg, 0, 1, 0);
   root.scale(0.9, 0.9, 0.9);
   //walk cycle
   const w = tSec * 6.0;
