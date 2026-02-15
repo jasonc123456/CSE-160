@@ -104,8 +104,8 @@ const cubePosUv = new Float32Array([
   -0.5,-0.5,-0.5, 0,0,   0.5,-0.5,-0.5, 1,0,   0.5,-0.5, 0.5, 1,1,
   -0.5,-0.5,-0.5, 0,0,   0.5,-0.5, 0.5, 1,1,  -0.5,-0.5, 0.5, 0,1,
 ]);
-function clamp(v, lo, hi){
-  return Math.max(lo, Math.min(hi, v));
+function clamp(value, lo, hi){
+  return Math.max(lo, Math.min(hi, value));
 }
 function setCenterMsg(text, durationMs){
   const el = document.getElementById("centerMsg");
@@ -117,7 +117,7 @@ function setCenterMsg(text, durationMs){
 function hideCenterMsgIfNeeded(){
   const el = document.getElementById("centerMsg");
   if(!el) return;
-  if(el.style.display !== "none" && performance.now() > msgUntil && !gameWon){
+  if(!gameWon && el.style.display !== "none" && performance.now() > messageHideAtMs){
     el.style.display = "none";
   }
 }
@@ -211,4 +211,67 @@ function buildWorld(){
       }
     }
   }
+  //small structures
+  for(let x = 6; x <= 13; x++){ mapHeights[x][10] = 2; mapTextures[x][10] = texWood;}
+  for(let z = 14; z <= 23; z++){ mapHeights[18][z] = 1; mapTextures[18][z] = texStone;}
+  for(let x = 20; x <= 26; x++){ mapHeights[x][20] = 3; mapTextures[x][20] = texWood;}
+  //sand patch
+  for(let x = 3; x <= 9; x++){
+    for(let z = 3; z <= 8; z++){
+      if(mapHeights[x][z] === 0){
+        mapHeights[x][z] = 1;
+        mapTextures[x][z] = texSand;
+      }
+    }
+  }
+  //water pond
+  for(let x = 22; x <= 27; x++){
+    for(let z = 5; z <= 10; z++){
+      if(mapHeights[x][z] === 0){
+        mapHeights[x][z] = 1;
+        mapTextures[x][z] = texWater;
+      }
+    }
+  }
+  //leaves bushes
+  for(let x = 10; x <= 14; x++){
+    for(let z = 22; z <= 26; z++){
+      mapHeights[x][z] = 2;
+      mapTextures[x][z] = texLeaves;
+    }
+  }
+}
+function worldToMap(wx, wz){
+  const ix = Math.floor(wx - worldOffsetX);
+  const iz = Math.floor(wz - worldOffsetZ);
+  return [ix, iz];
+}
+function isBlockedAtWorld(wx, wz){
+  const [ix, iz] = worldToMap(wx, wz);
+  if(ix < 0 || ix >= worldWidth || iz < 0 || iz >= worldDepth) return true;
+  return mapHeights[ix][iz] > 0;
+}
+function getFrontCell(){
+  const forward = camera.getForwardXz();
+  const p = new Vector3(camera.eye.elements);
+  forward.mul(1.5);
+  p.add(forward);
+  return worldToMap(p.elements[0], p.elements[2]);
+}
+function placeBlock(){
+  const [ix, iz] = getFrontCell();
+  if(ix < 0 || ix >= worldWidth || iz < 0 || iz >= worldDepth) return;
+  mapHeights[ix][iz] = clamp(mapHeights[ix][iz] + 1, 0, 4);
+  mapTextures[ix][iz] = selectedBlock;
+}
+function breakBlock(){
+  const [ix, iz] = getFrontCell();
+  if(ix < 0 || ix >= worldWidth || iz < 0 || iz >= worldDepth) return;
+  mapHeights[ix][iz] = clamp(mapHeights[ix][iz] - 1, 0, 4);
+}
+function tryMove(dx, dz){
+  const nx = camera.eye.elements[0] + dx;
+  const nz = camera.eye.elements[2] + dz;
+  if(isBlockedAtWorld(nx, nz)) return;
+  camera.translateXz(dx, dz);
 }
