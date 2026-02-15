@@ -112,7 +112,7 @@ function setCenterMsg(text, durationMs){
   if (!el) return;
   el.textContent = text;
   el.style.display = "block";
-  msgUntil = performance.now() + durationMs;
+  messageHideAtMs = performance.now() + durationMs;
 }
 function hideCenterMsgIfNeeded(){
   const el = document.getElementById("centerMsg");
@@ -274,4 +274,63 @@ function tryMove(dx, dz){
   const nz = camera.eye.elements[2] + dz;
   if(isBlockedAtWorld(nx, nz)) return;
   camera.translateXz(dx, dz);
+}
+//drawing
+function setMaterial(baseRgba, texWeight, whichTexture){
+  gl.uniform4f(uFragColorLoc, baseRgba[0], baseRgba[1], baseRgba[2], baseRgba[3]);
+  gl.uniform1f(uTexColorWeightLoc, texWeight);
+  gl.uniform1i(uWhichTextureLoc, whichTexture);
+}
+function drawCube(modelMatrix){
+  gl.uniformMatrix4fv(uModelMatrixLoc, false, modelMatrix.elements);
+  gl.drawArrays(gl.TRIANGLES, 0, 36);
+}
+function drawCubeColored(modelMatrix, rgba){
+  setMaterial(rgba, 0.0, 0);
+  drawCube(modelMatrix);
+}
+function drawSkybox(){
+  gl.disable(gl.CULL_FACE);
+  gl.depthMask(false);
+  setMaterial([0.25, 0.55, 0.95, 1.0], 0.0, 0);
+  const m = new Matrix4();
+  m.setIdentity();
+  m.translate(camera.eye.elements[0], camera.eye.elements[1], camera.eye.elements[2]);
+  m.scale(220, 220, 220);
+  drawCube(m);
+  gl.depthMask(true);
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.BACK);
+}
+function drawGround(){
+  const m = new Matrix4();
+  m.setIdentity();
+  m.translate(0, -0.05, 0);
+  m.scale(60, 0.10, 60);
+  if(texturesReady < 7){
+    drawCubeColored(m, [0.25, 0.75, 0.30, 1.0]);
+  }else{
+    setMaterial([1, 1, 1, 1], 1.0, texGrass);
+    drawCube(m);
+  }
+}
+function drawWorld(){
+  for(let x = 0; x < worldWidth; x++){
+    for(let z = 0; z < worldDepth; z++){
+      const h = mapHeights[x][z];
+      if(h <= 0) continue;
+      const tex = mapTextures[x][z];
+      for(let y = 0; y < h; y++){
+        const m = new Matrix4();
+        m.setIdentity();
+        m.translate(x + worldOffsetX + 0.5, y + 0.5, z + worldOffsetZ + 0.5);
+        if(texturesReady < 7){
+          drawCubeColored(m, [0.6, 0.6, 0.6, 1.0]);
+        }else{
+          setMaterial([1, 1, 1, 1], 1.0, tex);
+          drawCube(m);
+        }
+      }
+    }
+  }
 }
