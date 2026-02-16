@@ -368,7 +368,7 @@ function isBlockedAtWorld(wx, wz, eyeY){
 function isBlockedAtXZ(wx, wz){
   const [ix, iz] = worldToMap(wx, wz);
   if(ix < 0 || ix >= worldWidth || iz < 0 || iz >= worldDepth) return true;
-  return mapHeights[ix][iz] > 0; // sheep are ground-level, so any stack blocks them
+  return mapHeights[ix][iz] > 0;
 }
 function getFrontCell(){
   const f = camera.getForwardXz();
