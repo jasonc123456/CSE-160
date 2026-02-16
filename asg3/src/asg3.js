@@ -41,6 +41,40 @@ var fragmentShaderSource = `
   }
 `;
 //global variables
+let gameStarted = false;
+const introSlides = [
+  {
+    title: "Sheep Hunt",
+    body:
+    `You woke up inside a strange enclosure.
+    The sheep have escaped your pen. Catch them all to restore order.
+    Goal:
+    • Hit all sheep (Left Click) to win.`
+  },
+  {
+    title: "Controls",
+    body:
+    `Move:
+    • W A S D = walk
+    • Space = jump
+    Look:
+    • Click canvas = mouse look (pointer lock)
+    • Esc = exit mouse look
+    Blocks:
+    • 1..7 = select block type
+    • R = place block in front
+    • F / Right Click = break block in front`
+  },
+  {
+    title: "How to Win",
+    body:
+    `• Chase sheep: they flee when you're close.
+    • Aim near the center (crosshair) and Left Click to hit.
+    • Catch all sheep to win.
+    Press Start when you're ready.`
+  }
+];
+let introIndex = 0;
 let canvas, gl;
 let aPositionLoc, aUvLoc;
 let uModelMatrixLoc, uViewMatrixLoc, uProjectionMatrixLoc;
@@ -82,6 +116,66 @@ const worldOffsetX = -worldWidth / 2;
 const worldOffsetZ = -worldDepth / 2;
 let mapHeights = [];
 let mapTextures = [];
+//intro
+function showIntro(){
+  const overlay = document.getElementById("introOverlay");
+  overlay.style.display = "flex";
+  overlay.setAttribute("aria-hidden", "false");
+  const cross = document.getElementById("crosshair");
+  if(cross) cross.style.display = "none";
+  renderIntro();
+}
+function hideIntro(){
+  const overlay = document.getElementById("introOverlay");
+  overlay.style.display = "none";
+  overlay.setAttribute("aria-hidden", "true");
+  const cross = document.getElementById("crosshair");
+  if(cross) cross.style.display = "block";
+}
+function renderIntro(){
+  const slide = introSlides[introIndex];
+  document.getElementById("introTitle").textContent = slide.title;
+  document.getElementById("introBody").textContent = slide.body;
+  document.getElementById("introStep").textContent = `${introIndex + 1} / ${introSlides.length}`;
+  const backBtn = document.getElementById("introBack");
+  const nextBtn = document.getElementById("introNext");
+  const startBtn = document.getElementById("introStart");
+  backBtn.style.display = (introIndex === 0) ? "none" : "inline-block";
+  const atLast = (introIndex === introSlides.length - 1);
+  nextBtn.style.display = atLast ? "none" : "inline-block";
+  startBtn.style.display = atLast ? "inline-block" : "none";
+}
+function bindIntroButtons(){
+  document.getElementById("introBack").addEventListener("click", () => {
+    introIndex = Math.max(0, introIndex - 1);
+    renderIntro();
+  });
+  document.getElementById("introNext").addEventListener("click", () => {
+    introIndex = Math.min(introSlides.length - 1, introIndex + 1);
+    renderIntro();
+  });
+  document.getElementById("introStart").addEventListener("click", () => {
+    startGame();
+  });
+  window.addEventListener("keydown", (e) => {
+    if(gameStarted) return;
+    if(e.key === "Enter"){
+      e.preventDefault();
+      if(introIndex < introSlides.length - 1){
+        introIndex++;
+        renderIntro();
+      }else{
+        startGame();
+      }
+    }
+  });
+}
+function startGame(){
+  gameStarted = true;
+  hideIntro();
+  resetGame();
+  requestAnimationFrame(tick);
+}
 //sheep hunt
 let sheepList = [];
 const sheepCount = 7;
@@ -258,7 +352,7 @@ function isBlockedAtWorld(wx, wz, eyeY){
   const h = mapHeights[ix][iz];
   if(h <= 0) return false;
   const feetY = eyeY - PLAYER_EYE_HEIGHT;
-  //allow standing on 1-high blocks
+  //allow standing on blocks
   return (feetY + 0.05) < h;
 }
 function isBlockedAtXZ(wx, wz){
@@ -659,6 +753,8 @@ function main(){
   gl.cullFace(gl.BACK);
   camera = new Camera(canvas);
   buildWorld();
+  bindIntroButtons();
+  showIntro();
   setupInput();
   setupPointerLock();
   initTextures();
