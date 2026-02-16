@@ -301,26 +301,36 @@ function initTextures(){
 //note to grader: world layout is hardcoded via mapHeights and mapTextures 2D arrays and it is created at startup
 function buildWorld(){
   mapHeights = Array.from({length: worldWidth}, () => Array(worldDepth).fill(0));
-  mapTextures = Array.from({length: worldWidth}, () => Array(worldDepth).fill(texStone));
-  //perimeter walls
+  mapTextures = Array.from({length: worldWidth}, () => Array.from({length: worldDepth}, () => []));
+  //perimeter walls (height 2)
   for(let x = 0; x < worldWidth; x++){
     for(let z = 0; z < worldDepth; z++){
       if(x === 0 || z === 0 || x === worldWidth - 1 || z === worldDepth - 1){
         mapHeights[x][z] = 2;
-        mapTextures[x][z] = ((x + z) % 2) ? texStone : texWood;
+        const t = ((x + z) % 2) ? texStone : texWood;
+        mapTextures[x][z] = [t, t];
       }
     }
   }
   //small structures
-  for(let x = 6; x <= 13; x++){mapHeights[x][10] = 2; mapTextures[x][10] = texWood;}
-  for(let z = 14; z <= 23; z++){mapHeights[18][z] = 1; mapTextures[18][z] = texStone;}
-  for(let x = 20; x <= 26; x++){mapHeights[x][20] = 3; mapTextures[x][20] = texWood;}
+  for(let x = 6; x <= 13; x++){
+    mapHeights[x][10] = 2;
+    mapTextures[x][10] = [texWood, texWood];
+  }
+  for(let z = 14; z <= 23; z++){
+    mapHeights[18][z] = 1;
+    mapTextures[18][z] = [texStone];
+  }
+  for(let x = 20; x <= 26; x++){
+    mapHeights[x][20] = 3;
+    mapTextures[x][20] = [texWood, texWood, texWood];
+  }
   //sand patch
   for(let x = 3; x <= 9; x++){
     for(let z = 3; z <= 8; z++){
       if(mapHeights[x][z] === 0){
         mapHeights[x][z] = 1;
-        mapTextures[x][z] = texSand;
+        mapTextures[x][z] = [texSand];
       }
     }
   }
@@ -329,7 +339,7 @@ function buildWorld(){
     for(let z = 5; z <= 10; z++){
       if(mapHeights[x][z] === 0){
         mapHeights[x][z] = 1;
-        mapTextures[x][z] = texLapis;
+        mapTextures[x][z] = [texLapis];
       }
     }
   }
@@ -337,7 +347,7 @@ function buildWorld(){
   for(let x = 10; x <= 14; x++){
     for(let z = 22; z <= 26; z++){
       mapHeights[x][z] = 2;
-      mapTextures[x][z] = texLeaves;
+      mapTextures[x][z] = [texLeaves, texLeaves];
     }
   }
 }
@@ -372,13 +382,25 @@ function getFrontCell(){
 function placeBlock(){
   const [ix, iz] = getFrontCell();
   if(ix < 0 || ix >= worldWidth || iz < 0 || iz >= worldDepth) return;
-  mapHeights[ix][iz] = clamp(mapHeights[ix][iz] + 1, 0, 4);
-  mapTextures[ix][iz] = selectedBlock;
+  const h = mapHeights[ix][iz];
+  if(h >= 4) return;
+  let stack = mapTextures[ix][iz];
+  if(!Array.isArray(stack)) stack = [];
+  if(stack.length < h){
+    const fill = (stack.length > 0) ? stack[stack.length - 1] : texStone;
+    while(stack.length < h) stack.push(fill);
+  }
+  stack[h] = selectedBlock;
+  mapTextures[ix][iz] = stack;
+  mapHeights[ix][iz] = h + 1;
 }
 function breakBlock(){
   const [ix, iz] = getFrontCell();
   if(ix < 0 || ix >= worldWidth || iz < 0 || iz >= worldDepth) return;
-  mapHeights[ix][iz] = clamp(mapHeights[ix][iz] - 1, 0, 4);
+  const h = mapHeights[ix][iz];
+  if(h <= 0) return;
+  mapHeights[ix][iz] = h - 1;
+  mapTextures[ix][iz].pop();
 }
 function tryMove(dx, dz){
   const nx = camera.eye.elements[0] + dx;
@@ -432,17 +454,13 @@ function drawWorld(){
     for(let z = 0; z < worldDepth; z++){
       const h = mapHeights[x][z];
       if(h <= 0) continue;
-      const tex = mapTextures[x][z];
       for(let y = 0; y < h; y++){
+        const tex = mapTextures[x][z][y] ?? mapTextures[x][z][h-1] ?? texStone;
         const m = new Matrix4();
         m.setIdentity();
         m.translate(x + worldOffsetX + 0.5, y + 0.5, z + worldOffsetZ + 0.5);
-        if(texturesReady < 7){
-          drawCubeColored(m, [0.6, 0.6, 0.6, 1.0]);
-        }else{
-          setMaterial([1, 1, 1, 1], 1.0, tex);
-          drawCube(m);
-        }
+        if(texturesReady < 7) drawCubeColored(m, [0.6,0.6,0.6,1.0]);
+        else { setMaterial([1,1,1,1], 1.0, tex); drawCube(m); }
       }
     }
   }
