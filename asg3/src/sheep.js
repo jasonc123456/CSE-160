@@ -64,12 +64,15 @@ function drawSheepAt(x, y, z, yawDeg, tSec){
   }
   //legs
   function legBlock(lx, lz, ang){
+    const legH = 0.7;
+    const legW = 0.22;
+    const hipY = 0.50;
     const M = new Matrix4();
     M.set(root);
-    M.translate(lx, 0.35, lz);
+    M.translate(lx, hipY, lz);
     M.rotate(ang, 0, 0, 1);
-    M.translate(0, -0.35, 0);
-    M.scale(0.22, 0.7, 0.22);
+    M.translate(0, -legH/2, 0);
+    M.scale(legW, legH, legW);
     A.drawCubeColored(M, leg);
   }
   legBlock( 0.55, 0.28, legA);
