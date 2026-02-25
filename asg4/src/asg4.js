@@ -20,7 +20,6 @@ var vertexShaderSource = `
     vWorldNormal = normalize((uNormalMatrix * vec4(aNormal, 0.0)).xyz);
   }
 `;
-
 var fragmentShaderSource = `
   precision mediump float;
   uniform vec4 uFragColor;
@@ -157,6 +156,11 @@ const GRAVITY = 18.0;
 const JUMP_V = 6.0;
 let playerVelY = 0;
 let playerOnGround = true;
+let aNormalLoc;
+let uNormalMatrixLoc, uCameraPosLoc;
+let uLightPosLoc, uLightColorLoc, uPointLightOnLoc;
+let uSpotPosLoc, uSpotDirLoc, uSpotColorLoc, uSpotCutoffCosLoc, uSpotLightOnLoc;
+let uUseLightingLoc, uShowNormalsLoc;
 //input
 let keyState = Object.create(null);
 let pointerLocked = false;
@@ -169,7 +173,7 @@ let fpsCount = 0;
 let fpsLastStamp = performance.now();
 //Textures
 let texturesReady = 0;
-// indices match uWhichTexture
+//indices match uWhichTexture
 const texStone = 0; // wall0.png
 const texGrass = 1; // ground.png
 const texWood = 2; // wall1.png
@@ -186,6 +190,20 @@ const worldOffsetX = -worldWidth / 2;
 const worldOffsetZ = -worldDepth / 2;
 let mapHeights = [];
 let mapTextures = [];
+//mesh buffers
+let cubePosUvBuffer = null;
+let cubeNormalBuffer = null;
+let sphereMesh = null;
+//lighting state
+let useLighting = true;
+let showNormals = false;
+let pointLightOn = true;
+let spotLightOn = true;
+let animatePointLight = true;
+let pointLightPos = [3.5, 3.0, 0.0];
+let pointLightColor = [1.0, 1.0, 1.0];
+let pointLightOrbitRadius = 6.0;
+let pointLightOrbitSpeed = 0.8;
 //intro
 function showIntro(){
   const overlay = document.getElementById("introOverlay");
