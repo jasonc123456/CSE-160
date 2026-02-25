@@ -4,13 +4,20 @@ const gameApi = window.gameApi;
 var vertexShaderSource = `
   attribute vec3 aPosition;
   attribute vec2 aUv;
+  attribute vec3 aNormal;
   uniform mat4 uModelMatrix;
   uniform mat4 uViewMatrix;
   uniform mat4 uProjectionMatrix;
+  uniform mat4 uNormalMatrix;
   varying vec2 vUv;
+  varying vec3 vWorldPos;
+  varying vec3 vWorldNormal;
   void main(){
-    gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aPosition, 1.0);
+    vec4 worldPos = uModelMatrix * vec4(aPosition, 1.0);
+    gl_Position = uProjectionMatrix * uViewMatrix * worldPos;
     vUv = aUv;
+    vWorldPos = worldPos.xyz;
+    vWorldNormal = normalize((uNormalMatrix * vec4(aNormal, 0.0)).xyz);
   }
 `;
 
@@ -26,7 +33,23 @@ var fragmentShaderSource = `
   uniform sampler2D uSampler4;
   uniform sampler2D uSampler5;
   uniform sampler2D uSampler6;
+  uniform vec3 uCameraPos;
+  // point light
+  uniform vec3 uLightPos;
+  uniform vec3 uLightColor;
+  uniform int uPointLightOn;
+  // spotlight
+  uniform vec3 uSpotPos;
+  uniform vec3 uSpotDir;
+  uniform vec3 uSpotColor;
+  uniform float uSpotCutoffCos;
+  uniform int uSpotLightOn;
+  // toggles
+  uniform int uUseLighting;
+  uniform int uShowNormals;
   varying vec2 vUv;
+  varying vec3 vWorldPos;
+  varying vec3 vWorldNormal;
   void main(){
     vec4 texColor = vec4(1.0);
     if(uWhichTexture == 0) texColor = texture2D(uSampler0, vUv);
@@ -36,8 +59,55 @@ var fragmentShaderSource = `
     else if(uWhichTexture == 4) texColor = texture2D(uSampler4, vUv);
     else if(uWhichTexture == 5) texColor = texture2D(uSampler5, vUv);
     else if(uWhichTexture == 6) texColor = texture2D(uSampler6, vUv);
-    float t = uTexColorWeight;
-    gl_FragColor = (1.0 - t) * uFragColor + t * texColor;
+    vec4 baseColor = mix(uFragColor, texColor, uTexColorWeight);
+    vec3 N = normalize(vWorldNormal);
+    // normal visualization
+    if(uShowNormals == 1){
+      gl_FragColor = vec4(N * 0.5 + 0.5, 1.0);
+      return;
+    }
+    // lighting off
+    if(uUseLighting == 0){
+      gl_FragColor = baseColor;
+      return;
+    }
+    vec3 V = normalize(uCameraPos - vWorldPos);
+    // Ambient term
+    float ambientK = 0.18;
+    vec3 lit = ambientK * baseColor.rgb;
+    // Shared spec params
+    float shininess = 32.0;
+    float specK = 0.35;
+    // Point light
+    if(uPointLightOn == 1){
+      vec3 Lp = normalize(uLightPos - vWorldPos);
+      float diffP = max(dot(N, Lp), 0.0);
+      float specP = 0.0;
+      if(diffP > 0.0){
+        vec3 Rp = reflect(-Lp, N);
+        specP = pow(max(dot(V, Rp), 0.0), shininess);
+      }
+      lit += uLightColor * (diffP * baseColor.rgb + specK * specP);
+    }
+    // Spotlight
+    if(uSpotLightOn == 1){
+      vec3 spotToFrag = normalize(vWorldPos - uSpotPos);
+      float coneCos = dot(normalize(uSpotDir), spotToFrag);
+      // soft edge cone
+      float edge = 0.06;
+      float spotFactor = smoothstep(uSpotCutoffCos, min(1.0, uSpotCutoffCos + edge), coneCos);
+      if(spotFactor > 0.0){
+        vec3 Ls = normalize(uSpotPos - vWorldPos);  // fragment -> light
+        float diffS = max(dot(N, Ls), 0.0);
+        float specS = 0.0;
+        if(diffS > 0.0){
+          vec3 Rs = reflect(-Ls, N);
+          specS = pow(max(dot(V, Rs), 0.0), shininess);
+        }
+        lit += spotFactor * uSpotColor * (diffS * baseColor.rgb + specK * specS);
+      }
+    }
+    gl_FragColor = vec4(lit, baseColor.a);
   }
 `;
 //global variables
