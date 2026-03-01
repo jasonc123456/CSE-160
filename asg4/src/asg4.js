@@ -35,19 +35,20 @@ var fragmentShaderSource = `
   uniform sampler2D uSampler5;
   uniform sampler2D uSampler6;
   uniform vec3 uCameraPos;
-  // point light
+  //point light
   uniform vec3 uLightPos;
   uniform vec3 uLightColor;
   uniform int uPointLightOn;
-  // spotlight
+  //spotlight
   uniform vec3 uSpotPos;
   uniform vec3 uSpotDir;
   uniform vec3 uSpotColor;
   uniform float uSpotCutoffCos;
   uniform int uSpotLightOn;
-  // toggles
+  //toggles
   uniform int uUseLighting;
   uniform int uShowNormals;
+  uniform int uNormalVizUseViewSpace;
   varying vec2 vUv;
   varying vec3 vPosWS;
   varying vec3 vNormalWS;
@@ -65,7 +66,7 @@ var fragmentShaderSource = `
     vec3 N = normalize(vNormalWS);
     vec3 V = normalize(uCameraPos - vPosWS);
     if(uShowNormals == 1){
-      vec3 Nd = normalize(vNormalWS);
+      vec3 Nd = (uNormalVizUseViewSpace == 1) ? normalize(vNormalVS) : normalize(vNormalWS);
       gl_FragColor = vec4(Nd * 0.5 + 0.5, 1.0);
       return;
     }
@@ -89,6 +90,7 @@ var fragmentShaderSource = `
         specP = pow(max(dot(V, Rp), 0.0), shininess);
       }
       lit += uLightColor * (diffP * baseColor.rgb + specK * specP);
+      
     }
     //Spotlight
     if(uSpotLightOn == 1){
@@ -153,6 +155,7 @@ let uFragColorLoc, uTexColorWeightLoc, uWhichTextureLoc;
 let uSampler0Loc, uSampler1Loc, uSampler2Loc, uSampler3Loc, uSampler4Loc, uSampler5Loc, uSampler6Loc;
 let cubeBuffer = null;
 let camera = null;
+let uNormalVizUseViewSpaceLoc;
 const PLAYER_EYE_HEIGHT = 1.7;
 const GRAVITY = 18.0;
 const JUMP_V = 6.0;
@@ -366,6 +369,8 @@ function connectVariablesToGlsl(){
   uSpotLightOnLoc = gl.getUniformLocation(gl.program, "uSpotLightOn");
   uUseLightingLoc = gl.getUniformLocation(gl.program, "uUseLighting");
   uShowNormalsLoc = gl.getUniformLocation(gl.program, "uShowNormals");
+  uNormalVizUseViewSpaceLoc = gl.getUniformLocation(gl.program, "uNormalVizUseViewSpace");
+  gl.uniform1i(uNormalVizUseViewSpaceLoc, 0);
   if(aPositionLoc < 0 || aUvLoc < 0 || aNormalLoc < 0){
     console.log("Attrib missing:", {aPositionLoc, aUvLoc, aNormalLoc});
     return false;
@@ -539,32 +544,21 @@ function drawSphereColored(modelMatrix, rgba){
   setMaterial(rgba, 0.0, 0);
   drawMesh(sphereMesh, modelMatrix);
 }
-function createSphereMesh(latBands = 18, lonBands = 24){
+function createSphereMesh(latBands=24, lonBands=24){
   const posUv = [];
   const normals = [];
   const S = 0.5;
-
-  function pushTri(p0, p1, p2, u0, v0, u1, v1, u2, v2){
-    const ax = p0[0]*S, ay = p0[1]*S, az = p0[2]*S;
-    const bx = p1[0]*S, by = p1[1]*S, bz = p1[2]*S;
-    const cx = p2[0]*S, cy = p2[1]*S, cz = p2[2]*S;
-    const e1x = bx-ax, e1y = by-ay, e1z = bz-az;
-    const e2x = cx-ax, e2y = cy-ay, e2z = cz-az;
-    let nx = e1y*e2z - e1z*e2y;
-    let ny = e1z*e2x - e1x*e2z;
-    let nz = e1x*e2y - e1y*e2x;
-    const len = Math.hypot(nx, ny, nz) || 1;
-    nx/=len; ny/=len; nz/=len;
-    posUv.push(ax,ay,az,u0,v0,  bx,by,bz,u1,v1,  cx,cy,cz,u2,v2);
-    normals.push(nx,ny,nz,  nx,ny,nz,  nx,ny,nz);
+  function addVertex(x,y,z,u,v){
+    posUv.push(x*S, y*S, z*S, u, v);
+    normals.push(x, y, z);
   }
-  function spherePoint(v, u){
-    const phi = v * Math.PI;
-    const theta = u * Math.PI * 2.0;
+  function spherePoint(v,u){
+    const phi = v*Math.PI;
+    const theta = u*2.0*Math.PI;
     const y = Math.cos(phi);
     const r = Math.sin(phi);
-    const x = r * Math.cos(theta);
-    const z = r * Math.sin(theta);
+    const x = r*Math.cos(theta);
+    const z = r*Math.sin(theta);
     return [x,y,z];
   }
   for(let i=0;i<latBands;i++){
@@ -575,9 +569,12 @@ function createSphereMesh(latBands = 18, lonBands = 24){
       const p01=spherePoint(v0,u1);
       const p10=spherePoint(v1,u0);
       const p11=spherePoint(v1,u1);
-
-      pushTri(p00,p10,p11, u0,v0, u0,v1, u1,v1);
-      pushTri(p00,p11,p01, u0,v0, u1,v1, u1,v0);
+      addVertex(...p00,u0,v0);
+      addVertex(...p10,u0,v1);
+      addVertex(...p11,u1,v1);
+      addVertex(...p00,u0,v0);
+      addVertex(...p11,u1,v1);
+      addVertex(...p01,u1,v0);
     }
   }
   return createMesh(new Float32Array(posUv), new Float32Array(normals));
@@ -634,10 +631,12 @@ function drawLightMarker(){
   gl.uniform1i(uShowNormalsLoc, showNormals ? 1 : 0);
 }
 function drawDemoSpheres(tSec){
+  gl.uniform1i(uNormalVizUseViewSpaceLoc, 1);
   let m = new Matrix4();
   m.setIdentity();
   m.translate(-4.0, 1.0, -3.0);
   drawSphereColored(m, [0.95, 0.25, 0.25, 1.0]);
+  gl.uniform1i(uNormalVizUseViewSpaceLoc, 0);
 }
 function drawSkybox(){
   gl.disable(gl.CULL_FACE);
