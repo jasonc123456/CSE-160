@@ -16,7 +16,6 @@
         color: #111;
         border: 1px solid #cfcfcf;
       }
-
       .panel .btn:hover{
         background: #e6e6e6;
       }
@@ -38,31 +37,6 @@
         font-family: monospace; font-size: 12px;
         z-index: 9999;
         min-width: 220px;
-      }
-      #crosshair {
-        position: fixed;
-        left: 50%; top: 50%;
-        width: 18px; height: 18px;
-        transform: translate(-50%, -50%);
-        z-index: 9999;
-        pointer-events: none;
-        opacity: 0.85;
-      }
-      #crosshair::before, #crosshair::after {
-        content: "";
-        position: absolute;
-        background: white;
-        border-radius: 1px;
-      }
-      #crosshair::before {
-        left: 50%; top: 0;
-        width: 2px; height: 18px;
-        transform: translateX(-50%);
-      }
-      #crosshair::after {
-        left: 0; top: 50%;
-        width: 18px; height: 2px;
-        transform: translateY(-50%);
       }
       #centerMsg {
         position: fixed;
@@ -153,6 +127,7 @@
     <p><strong>Notes to Grader:</strong></p> 
     <ul>
       <li>I have chosen benchy as the Obj since I am a 3d printing and modeling enthusiast. I currently own 3 FDM printer and a 16k resin printer for personal projects and client print jobs.</li>
+      Prior features from assignment 3:
       <li>I have added additional feature like sheep that will attempt to run away when you are chasing them, they will turn back on you if you are near them and move the opposite way.</li>
       <li>In addition to the above wow features I have also added right mouse button click to remove blocks and the ability to jump and stand on top of blocks.</li>
       <li>For basic movements, I think that the requirement using Q and E or mouse drag to rotate camera view is hard to use in the game, I have implemented pointer lock, once clicked on the canvas, it will lock your pointer(press ESC to exit) and you can freely move in the world 360 degrees.</li>
@@ -235,7 +210,6 @@
       Sheep Remaining: <span id="sheepLeft">--</span><br/>
       Hits: <span id="hits">0</span>
     </div>
-    <div id="crosshair"></div>
     <div id="centerMsg"></div>
     <script src="../lib/webgl-utils.js"></script>
     <script src="../lib/webgl-debug.js"></script>
