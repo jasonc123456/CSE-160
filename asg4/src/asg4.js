@@ -326,32 +326,29 @@ function setupWebGl(){
   return true;
 }
 function connectVariablesToGlsl(){
-  if(!initShaders(gl, vertexShaderSource, fragmentShaderSource)) return false;
-  aPositionLoc = gl.getAttribLocation(gl.program, "aPosition");
-  aUvLoc = gl.getAttribLocation(gl.program, "aUv");
-  uModelMatrixLoc = gl.getUniformLocation(gl.program, "uModelMatrix");
-  uViewMatrixLoc = gl.getUniformLocation(gl.program, "uViewMatrix");
-  uProjectionMatrixLoc = gl.getUniformLocation(gl.program, "uProjectionMatrix");
-  uFragColorLoc = gl.getUniformLocation(gl.program, "uFragColor");
-  uTexColorWeightLoc = gl.getUniformLocation(gl.program, "uTexColorWeight");
-  uWhichTextureLoc = gl.getUniformLocation(gl.program, "uWhichTexture");
-  uSampler0Loc = gl.getUniformLocation(gl.program, "uSampler0");
-  uSampler1Loc = gl.getUniformLocation(gl.program, "uSampler1");
-  uSampler2Loc = gl.getUniformLocation(gl.program, "uSampler2");
-  uSampler3Loc = gl.getUniformLocation(gl.program, "uSampler3");
-  uSampler4Loc = gl.getUniformLocation(gl.program, "uSampler4");
-  uSampler5Loc = gl.getUniformLocation(gl.program, "uSampler5");
-  uSampler6Loc = gl.getUniformLocation(gl.program, "uSampler6");
-  cubeBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, cubePosUv, gl.STATIC_DRAW);
-  const fsize = cubePosUv.BYTES_PER_ELEMENT;
-  gl.vertexAttribPointer(aPositionLoc, 3, gl.FLOAT, false, fsize * 5, 0);
-  gl.enableVertexAttribArray(aPositionLoc);
-  gl.vertexAttribPointer(aUvLoc, 2, gl.FLOAT, false, fsize * 5, fsize * 3);
-  gl.enableVertexAttribArray(aUvLoc);
+  aNormalLoc = gl.getAttribLocation(gl.program, "aNormal");
+  uNormalMatrixLoc = gl.getUniformLocation(gl.program, "uNormalMatrix");
+  uCameraPosLoc = gl.getUniformLocation(gl.program, "uCameraPos");
+  uLightPosLoc = gl.getUniformLocation(gl.program, "uLightPos");
+  uLightColorLoc = gl.getUniformLocation(gl.program, "uLightColor");
+  uPointLightOnLoc = gl.getUniformLocation(gl.program, "uPointLightOn");
+  uSpotPosLoc = gl.getUniformLocation(gl.program, "uSpotPos");
+  uSpotDirLoc = gl.getUniformLocation(gl.program, "uSpotDir");
+  uSpotColorLoc = gl.getUniformLocation(gl.program, "uSpotColor");
+  uSpotCutoffCosLoc = gl.getUniformLocation(gl.program, "uSpotCutoffCos");
+  uSpotLightOnLoc = gl.getUniformLocation(gl.program, "uSpotLightOn");
+  uUseLightingLoc = gl.getUniformLocation(gl.program, "uUseLighting");
+  uShowNormalsLoc = gl.getUniformLocation(gl.program, "uShowNormals");
+  //Build cube mesh
+  const cubeMesh = createMesh(cubePosUv, cubeNormals);
+  //store globally for drawCube
+  window._cubeMesh = cubeMesh;
+  //Build sphere mesh once
+  sphereMesh = createSphereMesh(18, 24);
+  //identity init
   const identity = new Matrix4();
   gl.uniformMatrix4fv(uModelMatrixLoc, false, identity.elements);
+  gl.uniformMatrix4fv(uNormalMatrixLoc, false, identity.elements);
   //expose to sheep.js
   gameApi.drawCubeColored = drawCubeColored;
   return true;
@@ -504,13 +501,99 @@ function setMaterial(baseRgba, texWeight, whichTexture){
   gl.uniform1i(uWhichTextureLoc, whichTexture);
 }
 function drawCube(modelMatrix){
-  gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuffer);
-  gl.uniformMatrix4fv(uModelMatrixLoc, false, modelMatrix.elements);
-  gl.drawArrays(gl.TRIANGLES, 0, 36);
+  drawMesh(window._cubeMesh, modelMatrix);
 }
 function drawCubeColored(modelMatrix, rgba){
   setMaterial(rgba, 0.0, 0);
   drawCube(modelMatrix);
+}
+function drawSphereColored(modelMatrix, rgba){
+  setMaterial(rgba, 0.0, 0);
+  drawMesh(sphereMesh, modelMatrix);
+}
+function createSphereMesh(latBands = 18, lonBands = 24){
+  const posUv = [];
+  const normals = [];
+  function addVertex(x, y, z, u, v){
+    const rx = x * 0.5, ry = y * 0.5, rz = z * 0.5;
+    posUv.push(rx, ry, rz, u, v);
+    normals.push(x, y, z);
+  }
+  function spherePoint(v, u){
+    const phi = v * Math.PI;
+    const theta = u * Math.PI * 2.0;
+    const y = Math.cos(phi);
+    const r = Math.sin(phi);
+    const x = r * Math.cos(theta);
+    const z = r * Math.sin(theta);
+    return [x, y, z];
+  }
+  for(let i = 0; i < latBands; i++){
+    const v0 = i / latBands;
+    const v1 = (i + 1) / latBands;
+    for(let j = 0; j < lonBands; j++){
+      const u0 = j / lonBands;
+      const u1 = (j + 1) / lonBands;
+      const p00 = spherePoint(v0, u0);
+      const p01 = spherePoint(v0, u1);
+      const p10 = spherePoint(v1, u0);
+      const p11 = spherePoint(v1, u1);
+      //triangle 1: p00, p10, p11
+      addVertex(p00[0], p00[1], p00[2], u0, v0);
+      addVertex(p10[0], p10[1], p10[2], u0, v1);
+      addVertex(p11[0], p11[1], p11[2], u1, v1);
+      //triangle 2: p00, p11, p01
+      addVertex(p00[0], p00[1], p00[2], u0, v0);
+      addVertex(p11[0], p11[1], p11[2], u1, v1);
+      addVertex(p01[0], p01[1], p01[2], u1, v0);
+    }
+  }
+  return createMesh(new Float32Array(posUv), new Float32Array(normals));
+}
+function getCameraForward3D(){
+  const ex = camera.eye.elements[0], ey = camera.eye.elements[1], ez = camera.eye.elements[2];
+  const ax = camera.at.elements[0], ay = camera.at.elements[1], az = camera.at.elements[2];
+  let fx = ax - ex, fy = ay - ey, fz = az - ez;
+  const len = Math.hypot(fx, fy, fz) || 1.0;
+  fx /= len; fy /= len; fz /= len;
+  return [fx, fy, fz];
+}
+
+function updateAnimatedPointLight(tSec){
+  if(!animatePointLight) return;
+  pointLightPos[0] = Math.cos(tSec * pointLightOrbitSpeed) * pointLightOrbitRadius;
+  pointLightPos[2] = Math.sin(tSec * pointLightOrbitSpeed) * pointLightOrbitRadius;
+  // keep y from slider/manual value
+}
+
+function uploadLightingUniforms(tSec){
+  updateAnimatedPointLight(tSec);
+
+  // toggles
+  gl.uniform1i(uUseLightingLoc, useLighting ? 1 : 0);
+  gl.uniform1i(uShowNormalsLoc, showNormals ? 1 : 0);
+
+  // camera
+  gl.uniform3f(
+    uCameraPosLoc,
+    camera.eye.elements[0], camera.eye.elements[1], camera.eye.elements[2]
+  );
+
+  // point light
+  gl.uniform1i(uPointLightOnLoc, pointLightOn ? 1 : 0);
+  gl.uniform3f(uLightPosLoc, pointLightPos[0], pointLightPos[1], pointLightPos[2]);
+  gl.uniform3f(uLightColorLoc, pointLightColor[0], pointLightColor[1], pointLightColor[2]);
+
+  // spotlight (flashlight attached to camera)
+  const f = getCameraForward3D();
+  gl.uniform1i(uSpotLightOnLoc, spotLightOn ? 1 : 0);
+  gl.uniform3f(
+    uSpotPosLoc,
+    camera.eye.elements[0], camera.eye.elements[1], camera.eye.elements[2]
+  );
+  gl.uniform3f(uSpotDirLoc, f[0], f[1], f[2]);
+  gl.uniform3f(uSpotColorLoc, 1.0, 0.95, 0.85);
+  gl.uniform1f(uSpotCutoffCosLoc, Math.cos(18.0 * Math.PI / 180.0));
 }
 function drawSkybox(){
   gl.disable(gl.CULL_FACE);
@@ -851,6 +934,59 @@ function tick(nowMs){
   if(camera.eye.elements[1] !== oldY){
     camera.updateView();
   }
+}
+function makeCubeNormals(){
+  const out = [];
+  const faces = [
+    [0, 0, 1], //front
+    [0, 0, -1], //back
+    [-1, 0, 0], //left
+    [1, 0, 0], //right
+    [0, 1, 0], //top
+    [0, -1, 0], //bottom
+  ];
+  for(const n of faces){
+    for(let i = 0; i < 6; i++) out.push(n[0], n[1], n[2]);
+  }
+  return new Float32Array(out);
+}
+const cubeNormals = makeCubeNormals();
+function createMesh(posUvArray, normalArray){
+  const mesh = {
+    vertexCount: posUvArray.length / 5,
+    posUvBuffer: gl.createBuffer(),
+    normalBuffer: gl.createBuffer()
+  };
+  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.posUvBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, posUvArray, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, normalArray, gl.STATIC_DRAW);
+  return mesh;
+}
+function bindMesh(mesh){
+  const fsize = Float32Array.BYTES_PER_ELEMENT;
+  //positions + UVs
+  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.posUvBuffer);
+  gl.vertexAttribPointer(aPositionLoc, 3, gl.FLOAT, false, fsize * 5, 0);
+  gl.enableVertexAttribArray(aPositionLoc);
+  gl.vertexAttribPointer(aUvLoc, 2, gl.FLOAT, false, fsize * 5, fsize * 3);
+  gl.enableVertexAttribArray(aUvLoc);
+  //normals
+  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
+  gl.vertexAttribPointer(aNormalLoc, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aNormalLoc);
+}
+function setModelAndNormalMatrices(modelMatrix){
+  gl.uniformMatrix4fv(uModelMatrixLoc, false, modelMatrix.elements);
+  const normalM = new Matrix4();
+  normalM.setInverseOf(modelMatrix);
+  normalM.transpose();
+  gl.uniformMatrix4fv(uNormalMatrixLoc, false, normalM.elements);
+}
+function drawMesh(mesh, modelMatrix){
+  bindMesh(mesh);
+  setModelAndNormalMatrices(modelMatrix);
+  gl.drawArrays(gl.TRIANGLES, 0, mesh.vertexCount);
 }
 function main(){
   if (!setupWebGl()) return;
