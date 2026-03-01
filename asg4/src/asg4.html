@@ -11,6 +11,15 @@
         width: 380px; padding: 12px;
         border: 1px solid #ddd; border-radius: 10px; background: #fafafa;
       }
+      .panel .btn{
+        background: #f0f0f0;
+        color: #111;
+        border: 1px solid #cfcfcf;
+      }
+
+      .panel .btn:hover{
+        background: #e6e6e6;
+      }
       code { background: #eee; padding: 1px 4px; border-radius: 4px; }
       #fpsBox{
         position: fixed; top: 12px; right: 12px;
@@ -143,8 +152,8 @@
     <p>hcheun17@ucsc.edu</p>
     <p><strong>Notes to Grader:</strong></p> 
     <ul>
-      <li>For wow points I have implemented serval extra optional features, which include multiple blocks(7 blocks that can be selected with number row 1-7) that can be used to build and remove inside the world.</li>
-      <li>I have also added additional feature like sheep that will attempt to run away when you are chasing them, they will turn back on you if you are near them and move the opposite way.</li>
+      <li>I have chosen benchy as the Obj since I am a 3d printing and modeling enthusiast. I currently own 3 FDM printer and a 16k resin printer for personal projects and client print jobs.</li>
+      <li>I have added additional feature like sheep that will attempt to run away when you are chasing them, they will turn back on you if you are near them and move the opposite way.</li>
       <li>In addition to the above wow features I have also added right mouse button click to remove blocks and the ability to jump and stand on top of blocks.</li>
       <li>For basic movements, I think that the requirement using Q and E or mouse drag to rotate camera view is hard to use in the game, I have implemented pointer lock, once clicked on the canvas, it will lock your pointer(press ESC to exit) and you can freely move in the world 360 degrees.</li>
       <br>
@@ -191,8 +200,31 @@
           <li><strong>LMB</strong> attack sheep (chase + hit to win)</li>
           <li><code>P</code> restart game</li>
         </ul>
+        <hr />
+        <h3>Lighting (Asg4)</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+          <button id="btnLighting" class="btn" type="button">Lighting: ON</button>
+          <button id="btnNormals" class="btn" type="button">Normals: OFF</button>
+          <button id="btnPoint" class="btn" type="button">Point Light: ON</button>
+          <button id="btnSpot" class="btn" type="button">Spot Light: ON</button>
+          <button id="btnLightAnim" class="btn" type="button">Light Anim: ON</button>
+        </div>
+        <div style="font-size:12px; font-family:monospace;">
+          <div>Point Light X: <span id="lightXVal">3.5</span></div>
+          <input id="lightX" type="range" min="-15" max="15" step="0.1" value="3.5" style="width:100%;" />
+          <div>Point Light Y: <span id="lightYVal">3.0</span></div>
+          <input id="lightY" type="range" min="0.2" max="12" step="0.1" value="3.0" style="width:100%;" />
+          <div>Point Light Z: <span id="lightZVal">0.0</span></div>
+          <input id="lightZ" type="range" min="-15" max="15" step="0.1" value="0.0" style="width:100%;" />
+          <div style="margin-top:8px;">Light Color R: <span id="lightRVal">1.0</span></div>
+          <input id="lightR" type="range" min="0" max="1" step="0.01" value="1.0" style="width:100%;" />
+          <div>Light Color G: <span id="lightGVal">1.0</span></div>
+          <input id="lightG" type="range" min="0" max="1" step="0.01" value="1.0" style="width:100%;" />
+          <div>Light Color B: <span id="lightBVal">1.0</span></div>
+          <input id="lightB" type="range" min="0" max="1" step="0.01" value="1.0" style="width:100%;" />
+        </div>
       </div>
-    </div>
+    </div>  
     <div id="fpsBox">
       <div class="fpsTitle">Performance</div>
       <div class="fpsValue">FPS: <span id="fps">--</span></div>
