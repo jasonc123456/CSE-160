@@ -5,28 +5,20 @@ var vertexShaderSource = `
   attribute vec3 aPosition;
   attribute vec2 aUv;
   attribute vec3 aNormal;
-
   uniform mat4 uModelMatrix;
   uniform mat4 uViewMatrix;
   uniform mat4 uProjectionMatrix;
   uniform mat4 uNormalMatrix;
-
   varying vec2 vUv;
   varying vec3 vPosWS;
   varying vec3 vNormalWS;
   varying vec3 vNormalVS;
-
   void main(){
     vec4 worldPos = uModelMatrix * vec4(aPosition, 1.0);
     gl_Position = uProjectionMatrix * uViewMatrix * worldPos;
-
     vUv = aUv;
     vPosWS = worldPos.xyz;
-
-    // world-space normal (model inverse-transpose)
     vNormalWS = normalize((uNormalMatrix * vec4(aNormal, 0.0)).xyz);
-
-    // view-space normal for debug display
     vNormalVS = normalize(mat3(uViewMatrix) * vNormalWS);
   }
 `;
@@ -73,7 +65,7 @@ var fragmentShaderSource = `
     vec3 N = normalize(vNormalWS);
     vec3 V = normalize(uCameraPos - vPosWS);
     if(uShowNormals == 1){
-      vec3 Nd = normalize(vNormalVS);
+      vec3 Nd = normalize(vNormalWS);
       gl_FragColor = vec4(Nd * 0.5 + 0.5, 1.0);
       return;
     }
