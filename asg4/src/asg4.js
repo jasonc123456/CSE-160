@@ -1,3 +1,4 @@
+//I have referenced GenAI output across the assignment which provides me with certain part in pseudocode so that i can reference and code based on the pseudocode provided.
 window.gameApi = window.gameApi || {};
 const gameApi = window.gameApi;
 //shaders
@@ -207,9 +208,11 @@ let showNormals = false;
 let pointLightOn = true;
 let spotLightOn = true;
 let animatePointLight = true;
-let pointLightPos = [3.5, 3.0, 0.0];
+let pointLightBase = [0.0, 3.0, 0.0];
+let pointLightPhase = -Math.PI / 2;
+let pointLightOrbitRadius = 7.0;
+let pointLightPos = [0.0, 3.0, 0.0];
 let pointLightColor = [1.0, 1.0, 1.0];
-let pointLightOrbitRadius = 6.0;
 let pointLightOrbitSpeed = 0.8;
 //intro
 function showIntro(){
@@ -544,39 +547,52 @@ function drawSphereColored(modelMatrix, rgba){
   setMaterial(rgba, 0.0, 0);
   drawMesh(sphereMesh, modelMatrix);
 }
-function createSphereMesh(latBands=24, lonBands=24){
+function createSphereMesh(latBands = 24, lonBands = 24) {
   const posUv = [];
   const normals = [];
   const S = 0.5;
-  function addVertex(x,y,z,u,v){
-    posUv.push(x*S, y*S, z*S, u, v);
-    normals.push(x, y, z);
+  function emit(p, u, v) {
+    posUv.push(p[0] * S, p[1] * S, p[2] * S, u, v);
+    normals.push(p[0], p[1], p[2]);
   }
-  function spherePoint(v,u){
-    const phi = v*Math.PI;
-    const theta = u*2.0*Math.PI;
+  function addTri(p0, u0, v0, p1, u1, v1, p2, u2, v2) {
+    const e1x = p1[0] - p0[0], e1y = p1[1] - p0[1], e1z = p1[2] - p0[2];
+    const e2x = p2[0] - p0[0], e2y = p2[1] - p0[1], e2z = p2[2] - p0[2];
+    const fnx = e1y * e2z - e1z * e2y;
+    const fny = e1z * e2x - e1x * e2z;
+    const fnz = e1x * e2y - e1y * e2x;
+    const dot = fnx * p0[0] + fny * p0[1] + fnz * p0[2];
+    if (dot < 0) {
+      [p1, p2] = [p2, p1];
+      [u1, u2] = [u2, u1];
+      [v1, v2] = [v2, v1];
+    }
+    emit(p0, u0, v0);
+    emit(p1, u1, v1);
+    emit(p2, u2, v2);
+  }
+  function spherePoint(v, u) {
+    const phi = v * Math.PI;
+    const theta = u * 2.0 * Math.PI;
     const y = Math.cos(phi);
     const r = Math.sin(phi);
-    const x = r*Math.cos(theta);
-    const z = r*Math.sin(theta);
-    return [x,y,z];
+    const x = r * Math.cos(theta);
+    const z = r * Math.sin(theta);
+    return [x, y, z];
   }
-  for(let i=0;i<latBands;i++){
-    const v0=i/latBands, v1=(i+1)/latBands;
-    for(let j=0;j<lonBands;j++){
-      const u0=j/lonBands, u1=(j+1)/lonBands;
-      const p00=spherePoint(v0,u0);
-      const p01=spherePoint(v0,u1);
-      const p10=spherePoint(v1,u0);
-      const p11=spherePoint(v1,u1);
-      addVertex(...p00,u0,v0);
-      addVertex(...p10,u0,v1);
-      addVertex(...p11,u1,v1);
-      addVertex(...p00,u0,v0);
-      addVertex(...p11,u1,v1);
-      addVertex(...p01,u1,v0);
+  for (let i = 0; i < latBands; i++) {
+    const v0 = i / latBands, v1 = (i + 1) / latBands;
+    for (let j = 0; j < lonBands; j++) {
+      const u0 = j / lonBands, u1 = (j + 1) / lonBands;
+      const p00 = spherePoint(v0, u0);
+      const p01 = spherePoint(v0, u1);
+      const p10 = spherePoint(v1, u0);
+      const p11 = spherePoint(v1, u1);
+      addTri(p00, u0, v0, p10, u0, v1, p11, u1, v1);
+      addTri(p00, u0, v0, p11, u1, v1, p01, u1, v0);
     }
   }
+
   return createMesh(new Float32Array(posUv), new Float32Array(normals));
 }
 function getCameraForward3D(){
@@ -588,9 +604,16 @@ function getCameraForward3D(){
   return [fx, fy, fz];
 }
 function updateAnimatedPointLight(tSec){
-  if(!animatePointLight) return;
-  pointLightPos[0] = Math.cos(tSec * pointLightOrbitSpeed) * pointLightOrbitRadius;
-  pointLightPos[2] = Math.sin(tSec * pointLightOrbitSpeed) * pointLightOrbitRadius;
+  if(!animatePointLight){
+    pointLightPos[0] = pointLightBase[0];
+    pointLightPos[1] = pointLightBase[1];
+    pointLightPos[2] = pointLightBase[2];
+    return;
+  }
+  const a = tSec * pointLightOrbitSpeed + pointLightPhase;
+  pointLightPos[0] = pointLightBase[0] + Math.cos(a) * pointLightOrbitRadius;
+  pointLightPos[1] = pointLightBase[1];
+  pointLightPos[2] = pointLightBase[2] + Math.sin(a) * pointLightOrbitRadius;
 }
 function uploadLightingUniforms(tSec){
   updateAnimatedPointLight(tSec);
@@ -1065,9 +1088,9 @@ function bindLightingUi(){
     if(btnPoint) btnPoint.textContent = `Point Light: ${pointLightOn ? "ON" : "OFF"}`;
     if(btnSpot) btnSpot.textContent = `Spot Light: ${spotLightOn ? "ON" : "OFF"}`;
     if(btnLightAnim) btnLightAnim.textContent = `Light Anim: ${animatePointLight ? "ON" : "OFF"}`;
-    if(xVal) xVal.textContent = pointLightPos[0].toFixed(1);
-    if(yVal) yVal.textContent = pointLightPos[1].toFixed(1);
-    if(zVal) zVal.textContent = pointLightPos[2].toFixed(1);
+    if(xVal) xVal.textContent = pointLightBase[0].toFixed(1);
+    if(yVal) yVal.textContent = pointLightBase[1].toFixed(1);
+    if(zVal) zVal.textContent = pointLightBase[2].toFixed(1);
     if(rVal) rVal.textContent = pointLightColor[0].toFixed(2);
     if(gVal) gVal.textContent = pointLightColor[1].toFixed(2);
     if(bVal) bVal.textContent = pointLightColor[2].toFixed(2);
@@ -1082,7 +1105,7 @@ function bindLightingUi(){
     slider.addEventListener("input", () => {
       const v = parseFloat(slider.value);
       if(isColor) pointLightColor[idx] = v;
-      else pointLightPos[idx] = v;
+      else pointLightBase[idx] = v;
       refreshLabels();
     });
   }
