@@ -659,6 +659,16 @@ function drawDemoSpheres(tSec){
   m.setIdentity();
   m.translate(-4.0, 1.0, -3.0);
   drawSphereColored(m, [0.95, 0.25, 0.25, 1.0]);
+  let m2 = new Matrix4();
+  m2.setIdentity();
+  m2.translate(0.0, 0.7, -6.0);
+  m2.scale(0.7, 0.7, 0.7);
+  drawSphereColored(m2, [0.25, 0.85, 0.35, 1.0]);
+  let m3 = new Matrix4();
+  m3.setIdentity();
+  m3.translate(5.0, 1.2, -2.0);
+  m3.scale(1.2, 1.2, 1.2);
+  drawSphereColored(m3, [0.25, 0.45, 0.95, 1.0]);
   gl.uniform1i(uNormalVizUseViewSpaceLoc, 0);
 }
 function drawSkybox(){
