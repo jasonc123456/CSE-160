@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>CSE160 - Asg4</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      .app { display: flex; gap: 16px; align-items: flex-start; }
+      canvas { border: 1px solid #ddd; border-radius: 10px; }
+      .panel {
+        width: 380px; padding: 12px;
+        border: 1px solid #ddd; border-radius: 10px; background: #fafafa;
+      }
+      .panel .btn{
+        background: #f0f0f0;
+        color: #111;
+        border: 1px solid #cfcfcf;
+      }
+      .panel .btn:hover{
+        background: #e6e6e6;
+      }
+      code { background: #eee; padding: 1px 4px; border-radius: 4px; }
+      #fpsBox{
+        position: fixed; top: 12px; right: 12px;
+        background: rgba(20,20,20,0.85); color: #eaffea;
+        padding: 10px 14px; border-radius: 12px; font-family: monospace;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.35); backdrop-filter: blur(6px);
+        z-index: 9999;
+      }
+      .fpsTitle{ font-size: 11px; opacity: 0.7; margin-bottom: 4px; }
+      .fpsValue{ font-size: 18px; font-weight: bold; }
+      .msValue{ font-size: 12px; opacity: 0.85; }
+      #hud{
+        position: fixed; left: 12px; bottom: 12px;
+        background: rgba(20,20,20,0.78); color: #fff;
+        padding: 10px 12px; border-radius: 12px;
+        font-family: monospace; font-size: 12px;
+        z-index: 9999;
+        min-width: 220px;
+      }
+      #centerMsg {
+        position: fixed;
+        left: 50%; top: 18%;
+        transform: translate(-50%, -50%);
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: rgba(0,0,0,0.65);
+        color: #fff;
+        font-family: monospace;
+        z-index: 9999;
+        display: none;
+        white-space: pre-line;
+        text-align: center;
+      }
+      .canvasWrap{
+        position: relative;
+        display: inline-block;
+      }
+      .introOverlay{
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.55);
+        border-radius: 10px;
+        z-index: 10000;
+      }
+      .introCard{
+        width: min(520px, 92%);
+        background: rgba(20,20,20,0.92);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 14px;
+        padding: 14px 14px 12px;
+        font-family: monospace;
+        box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+      }
+      .introHeader{
+        display:flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .introTitle{ font-size: 18px; font-weight: 700; }
+      .introStep{ font-size: 12px; opacity: 0.75; }
+      .introBody{
+        white-space: pre-line;
+        line-height: 1.45;
+        font-size: 13px;
+        padding: 10px 10px;
+        background: rgba(255,255,255,0.06);
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.08);
+        margin-bottom: 10px;
+      }
+      .introButtons{
+        display:flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-bottom: 6px;
+      }
+      .btn{
+        background: rgba(255,255,255,0.10);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.16);
+        padding: 8px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-family: monospace;
+      }
+      .btn:hover{ background: rgba(255,255,255,0.16); }
+      .btn.primary{
+        background: rgba(0,160,255,0.35);
+        border-color: rgba(0,160,255,0.55);
+      }
+      .introFooter{
+        font-size: 11px;
+        opacity: 0.75;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Hei Yat Jason Cheung</p>
+    <p>hcheun17@ucsc.edu</p>
+    <p><strong>Notes to Grader:</strong></p> 
+    <ul>
+      <li>I have chosen benchy as the Obj since I am a 3d printing and modeling enthusiast. I currently own 3 FDM printer and a 16k resin printer for personal projects and client print jobs.</li>
+      Prior features from assignment 3:
+      <li>I have added additional feature like sheep that will attempt to run away when you are chasing them, they will turn back on you if you are near them and move the opposite way.</li>
+      <li>In addition to the above wow features I have also added right mouse button click to remove blocks and the ability to jump and stand on top of blocks.</li>
+      <li>For basic movements, I think that the requirement using Q and E or mouse drag to rotate camera view is hard to use in the game, I have implemented pointer lock, once clicked on the canvas, it will lock your pointer(press ESC to exit) and you can freely move in the world 360 degrees.</li>
+      <br>
+      <!--<li>For the Awesomeness points, I have added a couple extra / bonus features such as the Eraser and Rotation tool(Only work on triangle for now) which make the canvas more usable and can draw more advanced pictures!</li>-->
+      <li>CSE160 Assignments Selector: <a href="https://cse160.jasoncheung.dev/" target="_blank">Click Here</a></li>
+      <li>Github Repo: <a href="https://github.com/jasonc123456/CSE-160/" target="_blank">Click Here</a></li>
+      <!--<li>Test Cases: <a href="https://cse160.jasoncheung.dev/asg0/lib/vectorTests.html" target="_blank">Click Here</a></li>-->
+      <li>asg4.js: <a href="https://cse160.jasoncheung.dev/asg4/src/asg4.js" target="_blank">Click Here</a></li>
+    </ul>
+    <div class="app">
+      <div class="canvasWrap">
+        <canvas id="webgl" width="720" height="540">
+          Please use a browser that supports "canvas"
+        </canvas>
+        <!--Intro and Tutorial overlay-->
+        <div id="introOverlay" class="introOverlay" aria-hidden="true">
+          <div class="introCard">
+            <div class="introHeader">
+              <div id="introTitle" class="introTitle">Sheep Hunt</div>
+              <div id="introStep" class="introStep">1 / 3</div>
+            </div>
+            <div id="introBody" class="introBody"></div>
+            <div class="introButtons">
+              <button id="introBack" class="btn" type="button">Back</button>
+              <button id="introNext" class="btn primary" type="button">Next</button>
+              <button id="introStart" class="btn primary" type="button" style="display:none;">Start</button>
+            </div>
+            <div class="introFooter">
+              Tip: After starting, click the canvas to enable mouse-look (pointer lock). Press <b>Esc</b> to exit.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Controls</h3>
+        <ul>
+          <li><code>W</code><code>A</code><code>S</code><code>D</code> move</li>
+          <li><code>Space</code> jump</li>
+          <li><code>Q</code>/<code>E</code> turn (yaw)</li>
+          <li><strong>Click canvas</strong> to enable mouse-look (pointer lock). <code>Esc</code> to exit.</li>
+          <li><code>Mouse</code> move = look (fallback: drag if pointer lock not active)</li>
+          <li><code>1..7</code> select block type (stone/grass/wood/dirt/leaves/sand/water)</li>
+          <li><code>R</code> place block, <code>F</code> break block (also RMB breaks)</li>
+          <li><strong>LMB</strong> attack sheep (chase + hit to win)</li>
+          <li><code>P</code> restart game</li>
+        </ul>
+        <hr />
+        <h3>Lighting (Asg4)</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+          <button id="btnLighting" class="btn" type="button">Lighting: ON</button>
+          <button id="btnNormals" class="btn" type="button">Normals: OFF</button>
+          <button id="btnPoint" class="btn" type="button">Point Light: ON</button>
+          <button id="btnSpot" class="btn" type="button">Spot Light: ON</button>
+          <button id="btnLightAnim" class="btn" type="button">Light Anim: ON</button>
+        </div>
+        <div style="font-size:12px; font-family:monospace;">
+          <div>Point Light X: <span id="lightXVal">3.5</span></div>
+          <input id="lightX" type="range" min="-15" max="15" step="0.1" value="3.5" style="width:100%;" />
+          <div>Point Light Y: <span id="lightYVal">3.0</span></div>
+          <input id="lightY" type="range" min="0.2" max="12" step="0.1" value="3.0" style="width:100%;" />
+          <div>Point Light Z: <span id="lightZVal">0.0</span></div>
+          <input id="lightZ" type="range" min="-15" max="15" step="0.1" value="0.0" style="width:100%;" />
+          <div style="margin-top:8px;">Light Color R: <span id="lightRVal">1.0</span></div>
+          <input id="lightR" type="range" min="0" max="1" step="0.01" value="1.0" style="width:100%;" />
+          <div>Light Color G: <span id="lightGVal">1.0</span></div>
+          <input id="lightG" type="range" min="0" max="1" step="0.01" value="1.0" style="width:100%;" />
+          <div>Light Color B: <span id="lightBVal">1.0</span></div>
+          <input id="lightB" type="range" min="0" max="1" step="0.01" value="1.0" style="width:100%;" />
+        </div>
+      </div>
+    </div>  
+    <div id="fpsBox">
+      <div class="fpsTitle">Performance</div>
+      <div class="fpsValue">FPS: <span id="fps">--</span></div>
+      <div class="msValue">Frame: <span id="ms">--</span> ms</div>
+    </div>
+    <div id="hud">
+      Selected Block: <span id="selName">stone</span><br/>
+      Sheep Remaining: <span id="sheepLeft">--</span><br/>
+      Hits: <span id="hits">0</span>
+    </div>
+    <div id="centerMsg"></div>
+    <script async src="https://unpkg.com/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@latest/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@latest/examples/jsm/"
+      }
+    }
+    </script>
+    <script type="module" src="./asg5.js"></script>
+  </body>
+</html>
