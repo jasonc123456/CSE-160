@@ -2,10 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>CSE160 - Asg4</title>
+    <title>CSE160 - Asg5</title>
     <style>
+      .helpOverlay{
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 12000;
+        width: min(360px, 92%);
+        max-height: calc(100% - 24px);
+        overflow: auto;
+      }
+      .hidden{ display: none !important; }
+      .canvasWrap { width: min(1000px, 100%); }
+      #webgl { width: 100%; height: calc(100vh - 180px); }
       body { font-family: Arial, sans-serif; margin: 20px; }
-      .app { display: flex; gap: 16px; align-items: flex-start; }
+      .app { display: block; }
+      .canvasWrap { width: 100%; }
+      :fullscreen body { margin: 0; }
       canvas { border: 1px solid #ddd; border-radius: 10px; }
       .panel {
         width: 380px; padding: 12px;
@@ -126,24 +140,19 @@
     <p>hcheun17@ucsc.edu</p>
     <p><strong>Notes to Grader:</strong></p> 
     <ul>
-      <li>I have chosen benchy as the Obj since I am a 3d printing and modeling enthusiast. I currently own 3 FDM printer and a 16k resin printer for personal projects and client print jobs.</li>
-      Prior features from assignment 3:
-      <li>I have added additional feature like sheep that will attempt to run away when you are chasing them, they will turn back on you if you are near them and move the opposite way.</li>
+      <li>For wow points I have implemented a herding mini-game: sheep wander/flee and are captured when guided into the holding pen. Win state plus restart.
+      <li>I have added additional feature like Pointer-lock, FPS controls, fullscreen toggle, in-game help overlay (I) and guided intro tutorial.</li>
       <li>In addition to the above wow features I have also added right mouse button click to remove blocks and the ability to jump and stand on top of blocks.</li>
-      <li>For basic movements, I think that the requirement using Q and E or mouse drag to rotate camera view is hard to use in the game, I have implemented pointer lock, once clicked on the canvas, it will lock your pointer(press ESC to exit) and you can freely move in the world 360 degrees.</li>
       <br>
       <!--<li>For the Awesomeness points, I have added a couple extra / bonus features such as the Eraser and Rotation tool(Only work on triangle for now) which make the canvas more usable and can draw more advanced pictures!</li>-->
       <li>CSE160 Assignments Selector: <a href="https://cse160.jasoncheung.dev/" target="_blank">Click Here</a></li>
       <li>Github Repo: <a href="https://github.com/jasonc123456/CSE-160/" target="_blank">Click Here</a></li>
       <!--<li>Test Cases: <a href="https://cse160.jasoncheung.dev/asg0/lib/vectorTests.html" target="_blank">Click Here</a></li>-->
-      <li>asg4.js: <a href="https://cse160.jasoncheung.dev/asg4/src/asg4.js" target="_blank">Click Here</a></li>
+      <li>asg5.js: <a href="https://cse160.jasoncheung.dev/asg5/src/asg5.js" target="_blank">Click Here</a></li>
     </ul>
     <div class="app">
       <div class="canvasWrap">
-        <canvas id="webgl" width="720" height="540">
-          Please use a browser that supports "canvas"
-        </canvas>
-        <!--Intro and Tutorial overlay-->
+        <canvas id="webgl" width="720" height="540">...</canvas>
         <div id="introOverlay" class="introOverlay" aria-hidden="true">
           <div class="introCard">
             <div class="introHeader">
@@ -157,46 +166,23 @@
               <button id="introStart" class="btn primary" type="button" style="display:none;">Start</button>
             </div>
             <div class="introFooter">
-              Tip: After starting, click the canvas to enable mouse-look (pointer lock). Press <b>Esc</b> to exit.
+              Tip: Click the canvas after starting to enable mouse-look (pointer lock). Press <b>Esc</b> to exit.
             </div>
           </div>
         </div>
-      </div>
-      <div class="panel">
-        <h3>Controls</h3>
-        <ul>
-          <li><code>W</code><code>A</code><code>S</code><code>D</code> move</li>
-          <li><code>Space</code> jump</li>
-          <li><code>Q</code>/<code>E</code> turn (yaw)</li>
-          <li><strong>Click canvas</strong> to enable mouse-look (pointer lock). <code>Esc</code> to exit.</li>
-          <li><code>Mouse</code> move = look (fallback: drag if pointer lock not active)</li>
-          <li><code>1..7</code> select block type (stone/grass/wood/dirt/leaves/sand/water)</li>
-          <li><code>R</code> place block, <code>F</code> break block (also RMB breaks)</li>
-          <li><strong>LMB</strong> attack sheep (chase + hit to win)</li>
-          <li><code>P</code> restart game</li>
-        </ul>
-        <hr />
-        <h3>Lighting (Asg4)</h3>
-        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-          <button id="btnLighting" class="btn" type="button">Lighting: ON</button>
-          <button id="btnNormals" class="btn" type="button">Normals: OFF</button>
-          <button id="btnPoint" class="btn" type="button">Point Light: ON</button>
-          <button id="btnSpot" class="btn" type="button">Spot Light: ON</button>
-          <button id="btnLightAnim" class="btn" type="button">Light Anim: ON</button>
-        </div>
-        <div style="font-size:12px; font-family:monospace;">
-          <div>Point Light X: <span id="lightXVal">3.5</span></div>
-          <input id="lightX" type="range" min="-15" max="15" step="0.1" value="3.5" style="width:100%;" />
-          <div>Point Light Y: <span id="lightYVal">3.0</span></div>
-          <input id="lightY" type="range" min="0.2" max="12" step="0.1" value="3.0" style="width:100%;" />
-          <div>Point Light Z: <span id="lightZVal">0.0</span></div>
-          <input id="lightZ" type="range" min="-15" max="15" step="0.1" value="0.0" style="width:100%;" />
-          <div style="margin-top:8px;">Light Color R: <span id="lightRVal">1.0</span></div>
-          <input id="lightR" type="range" min="0" max="1" step="0.01" value="1.0" style="width:100%;" />
-          <div>Light Color G: <span id="lightGVal">1.0</span></div>
-          <input id="lightG" type="range" min="0" max="1" step="0.01" value="1.0" style="width:100%;" />
-          <div>Light Color B: <span id="lightBVal">1.0</span></div>
-          <input id="lightB" type="range" min="0" max="1" step="0.01" value="1.0" style="width:100%;" />
+        <div id="helpPanel" class="panel helpOverlay hidden">
+          <h3>Controls</h3>
+          <ul>
+            <li><code>W</code><code>A</code><code>S</code><code>D</code> move</li>
+            <li><code>Space</code> jump</li>
+            <li><code>Q</code>/<code>E</code> turn (yaw)</li>
+            <li><strong>Click canvas</strong> to enable mouse-look (pointer lock). <code>Esc</code> to exit.</li>
+            <li><code>Mouse</code> move = look</li>
+            <li><strong>LMB</strong> attack sheep</li>
+            <li><code>P</code> restart game</li>
+            <li><code>I</code> toggle instructions</li>
+            <li><code>F</code> fullscreen</li>
+          </ul>
         </div>
       </div>
     </div>  
@@ -208,7 +194,7 @@
     <div id="hud">
       Selected Block: <span id="selName">stone</span><br/>
       Sheep Remaining: <span id="sheepLeft">--</span><br/>
-      Hits: <span id="hits">0</span>
+      Sheep Returned: <span id="hits">0</span>
     </div>
     <div id="centerMsg"></div>
     <script async src="https://unpkg.com/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
